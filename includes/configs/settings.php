@@ -160,7 +160,7 @@ return [
 		'sections' => [
 			'hpgp_maptiler'   => [
 				'title'       => 'MapTiler',
-				'description' => esc_html__( 'Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com, then copy the key from the Keys page of your account. Good coverage and seven map styles, the widest choice here. Worth knowing before you choose it: MapTiler has no single "city" level in the United Kingdom, so a listing in the middle of a large city can be filed under a named district of it, such as Old Town in Edinburgh. Smaller towns and cities are named as you would expect, and this plugin checks with MapTiler whether a county is also a city so that places like Cardiff and Nottingham come out right.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com, then copy the key from the Keys page of your account. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. Good coverage and seven map styles, the widest choice here. Worth knowing before you choose it: MapTiler has no single "city" level in the United Kingdom, so a listing in the middle of a large city can be filed under a named district of it, such as Old Town in Edinburgh. Smaller towns and cities are named as you would expect, and this plugin checks with MapTiler whether a county is also a city so that places like Cardiff and Nottingham come out right.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 50,
 
 				'fields'      => [
@@ -175,7 +175,7 @@ return [
 
 			'hpgp_geoapify'   => [
 				'title'       => 'Geoapify',
-				'description' => esc_html__( 'Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project, then copy the API key it gives you. Names places consistently and handles cities well. It writes some labels its own way, abbreviating England to "ENG" and occasionally beginning a building result with "yes", which comes from the underlying map data rather than from this plugin.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project, then copy the API key it gives you. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. Names places consistently and handles cities well. It writes some labels its own way, abbreviating England to "ENG" and occasionally beginning a building result with "yes", which comes from the underlying map data rather than from this plugin.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 60,
 
 				'fields'      => [
@@ -190,7 +190,7 @@ return [
 
 			'hpgp_locationiq' => [
 				'title'       => 'LocationIQ',
-				'description' => esc_html__( 'Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com, then copy the access token from the Dashboard. The most detailed addresses of the three, often naming the neighbourhood as well as the town. Its free plan allows about one search a second, which is ample for typing but can be reached by automated tools. It sometimes names a city by its council area, such as "Aberdeen City" rather than "Aberdeen", so a site that has already built region pages under another provider may end up with both.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com, then copy the access token from the Dashboard. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. The most detailed addresses of the three, often naming the neighbourhood as well as the town. Its free plan allows about one search a second, which is ample for typing but can be reached by automated tools. It sometimes names a city by its council area, such as "Aberdeen City" rather than "Aberdeen", so a site that has already built region pages under another provider may end up with both.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 70,
 
 				'fields'      => [

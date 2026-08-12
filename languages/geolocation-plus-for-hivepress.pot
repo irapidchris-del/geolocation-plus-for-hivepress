@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Geolocation Plus for HivePress 1.0.2\n"
+"Project-Id-Version: Geolocation Plus for HivePress 1.0.3\n"
 "Report-Msgid-Bugs-To: https://github.com/irapidchris-del/geolocation-plus-for-hivepress/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-12T17:38:02+00:00\n"
+"POT-Creation-Date: 2026-08-12T19:28:34+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: geolocation-plus-for-hivepress\n"
@@ -440,15 +440,15 @@ msgid "Delete all data when this plugin is deleted"
 msgstr ""
 
 #: includes/configs/settings.php:163
-msgid "Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com, then copy the key from the Keys page of your account. Good coverage and seven map styles, the widest choice here. Worth knowing before you choose it: MapTiler has no single \"city\" level in the United Kingdom, so a listing in the middle of a large city can be filed under a named district of it, such as Old Town in Edinburgh. Smaller towns and cities are named as you would expect, and this plugin checks with MapTiler whether a county is also a city so that places like Cardiff and Nottingham come out right."
+msgid "Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com, then copy the key from the Keys page of your account. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. Good coverage and seven map styles, the widest choice here. Worth knowing before you choose it: MapTiler has no single \"city\" level in the United Kingdom, so a listing in the middle of a large city can be filed under a named district of it, such as Old Town in Edinburgh. Smaller towns and cities are named as you would expect, and this plugin checks with MapTiler whether a county is also a city so that places like Cardiff and Nottingham come out right."
 msgstr ""
 
 #: includes/configs/settings.php:178
-msgid "Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project, then copy the API key it gives you. Names places consistently and handles cities well. It writes some labels its own way, abbreviating England to \"ENG\" and occasionally beginning a building result with \"yes\", which comes from the underlying map data rather than from this plugin."
+msgid "Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project, then copy the API key it gives you. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. Names places consistently and handles cities well. It writes some labels its own way, abbreviating England to \"ENG\" and occasionally beginning a building result with \"yes\", which comes from the underlying map data rather than from this plugin."
 msgstr ""
 
 #: includes/configs/settings.php:193
-msgid "Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com, then copy the access token from the Dashboard. The most detailed addresses of the three, often naming the neighbourhood as well as the town. Its free plan allows about one search a second, which is ample for typing but can be reached by automated tools. It sometimes names a city by its council area, such as \"Aberdeen City\" rather than \"Aberdeen\", so a site that has already built region pages under another provider may end up with both."
+msgid "Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com, then copy the access token from the Dashboard. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. The most detailed addresses of the three, often naming the neighbourhood as well as the town. Its free plan allows about one search a second, which is ample for typing but can be reached by automated tools. It sometimes names a city by its council area, such as \"Aberdeen City\" rather than \"Aberdeen\", so a site that has already built region pages under another provider may end up with both."
 msgstr ""
 
 #: includes/fields/class-hpgp-location.php:48

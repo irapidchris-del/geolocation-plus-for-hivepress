@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,9 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.0.3 =
+* The Integrations settings page now says to restrict each API key to your own domain before pasting it in. The keys are used in the visitor browser, as these services intend, so they are readable by anyone who views a page with a map on it, and an unrestricted key can be used up by somebody else. This was only in the readme before, which is not open when you are pasting a key into a box.
 
 = 1.0.2 =
 * "Locate Me" works again when Suggestion Types is restricted. It was doing nothing at all, silently, because the visitor's own position did not match the kinds of place the suggestion list was limited to. Where somebody is standing is not a choice from a list, so the restriction no longer applies to it. "Hide the exact address" still does, and remains the setting to use if you want the result made less precise.
