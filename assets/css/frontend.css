@@ -1,0 +1,132 @@
+/**
+ * Geolocation Plus for HivePress.
+ *
+ * Deliberately small. The suggestion list reuses the class names the HivePress Geolocation
+ * extension already styles (assets/css/common.less), so it looks identical whichever map
+ * provider is in use, and everything else leans on core HivePress structure classes rather
+ * than introducing a look of its own.
+ */
+
+/*--------------------------------------------------------------
+Location suggestions
+--------------------------------------------------------------*/
+
+/* The extension's location field is a flex row and nothing in it is positioned, so the
+   dropdown needs an anchor. Harmless on the Google Maps and Mapbox markup, which positions
+   its own dropdown against the viewport. */
+.hp-field--location {
+	position: relative;
+}
+
+/* The background and padding are ours, not borrowed. The list reuses the Geolocation
+   extension's .pac-container styling where that stylesheet is present, but it is not always:
+   deactivate the extension while a Location attribute defined here still renders, or let an
+   optimiser drop the extension's CSS as unused on that URL, and the suggestions became bare
+   text floating over the page with the content showing through. Kept at low specificity so the
+   extension's own rules still win wherever they load. */
+.hpgp-suggestions {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 1000;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	max-height: 18rem;
+	overflow-y: auto;
+	background-color: #fff;
+	border: 1px solid #e6e6e6;
+}
+
+.hpgp-suggestions > li {
+	margin: 0;
+	padding: 0.25rem 0.5rem;
+	line-height: 1.6;
+	cursor: pointer;
+}
+
+.hpgp-suggestions > li:first-child {
+	border-top: none;
+}
+
+.hpgp-suggestions__item--active,
+.hpgp-suggestions > li:hover {
+	background-color: #fafafa;
+}
+
+/* Percentage sizing, so the message scales with whatever type size the theme sets. */
+.hpgp-suggestions__message {
+	cursor: default;
+	font-size: 90%;
+	opacity: 0.7;
+}
+
+.hpgp-suggestions__message:hover {
+	background-color: transparent;
+}
+
+/*--------------------------------------------------------------
+Maps
+--------------------------------------------------------------*/
+
+/* All six official themes set ".hp-map { min-height: 22.4375rem }" (359px), which silently
+   overrides any smaller height the map block is given - a block asked for 260px rendered at
+   359px, with the setting looking implemented and doing nothing. Released only where a height
+   was deliberately chosen, so every other map keeps the theme's floor, including the
+   Geolocation extension's own sidebar maps. The attribute selector outranks the theme's single
+   class, so no !important is needed. */
+.hp-map[data-height] {
+	min-height: 0;
+}
+
+/* The block editor's stand-in. The stylesheet carries an `editor` scope, so this is the one part
+   of the block that IS styled inside Gutenberg. min-height is restated because the rule above
+   releases it for any map carrying a height, and the placeholder has no map to give it one. */
+.hpgp-map-placeholder {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	min-height: 12rem;
+	padding: 2rem 1rem;
+	text-align: center;
+	border: 1px dashed #d5d8dc;
+	border-radius: 3px;
+	background-color: #f7f8f9;
+}
+
+.hpgp-map-placeholder small {
+	font-size: 80%;
+	opacity: 0.7;
+}
+
+/* Leaflet fixes its own type at 12px Helvetica, which reads as a foreign component sitting
+   inside a HivePress page. Inheriting puts the popups back into the theme's own type. */
+.hp-map .leaflet-container {
+	font: inherit;
+}
+
+.hp-map .leaflet-popup-content {
+	margin: 1rem;
+	font: inherit;
+}
+
+.hp-map .leaflet-popup-content p {
+	margin: 0;
+}
+
+.hp-map .leaflet-container a.leaflet-popup-close-button {
+	font: inherit;
+}
+
+/* The pin is an inline SVG in a divIcon, which Leaflet gives no styling of its own. */
+.hpgp-marker svg {
+	display: block;
+}
+
+/* Leaflet draws its attribution at 11px; keep it quiet but let it scale. */
+.hp-map .leaflet-control-attribution {
+	font-size: 75%;
+}

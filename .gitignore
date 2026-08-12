@@ -1,0 +1,7 @@
+.DS_Store
+Thumbs.db
+*.log
+/node_modules/
+# Anchored: a dependency dir at the repo root only. Unanchored "vendor/" would also
+# match assets/vendor/leaflet, which is bundled with the plugin and must ship.
+/vendor/
