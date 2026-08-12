@@ -46,6 +46,11 @@ return [
 		// See the note in request_reverse() for why this is not simply raised everywhere.
 		'reverse_timeout' => 20,
 
+		// Photon has no country parameter, so the Countries setting is applied in the browser
+		// instead - which means the request has to be wide enough to contain the countries the
+		// site allows. See the over-fetch note in get_script_data().
+		'country_param'   => false,
+
 		// Photon accepts only these language codes, and an unsupported one is a hard 400 rather
 		// than an ignored parameter: `?q=edinburgh&lang=es` answers
 		// {"lang":[{"message":"Language is not supported. Supported are: default, de, en, fr"}]}

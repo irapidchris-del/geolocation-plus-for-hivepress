@@ -503,9 +503,23 @@ final class Hpgp_Geolocation extends Component {
 		// Over-fetch when the browser has to do the filtering, but never past what the provider
 		// accepts - MapTiler documents 10 as its ceiling, and a request over it either 400s or is
 		// clamped, which would quietly break the filtering the over-fetch exists to feed.
-		$limit = absint( hp\get_array_value( $provider, 'limit', 5 ) );
+		//
+		// The COUNTRY restriction counts as browser-side filtering too, but only on a provider that
+		// cannot be told about it in the request. Photon is the one, and asking it for five results
+		// and then discarding the foreign ones is how "Richmond" came back as "No matching places
+		// found" on a United Kingdom site: Photon's first five are Virginia, North Carolina,
+		// British Columbia, Indiana and Kentucky, and the three British Richmonds sit at positions
+		// 8, 10 and 12 (measured live, 2026-08-12). Nothing was wrong with the filter - it simply
+		// had nothing left to keep. Ludlow and Boston hid it, because their British entry happens
+		// to fall inside the first five.
+		$limit    = absint( hp\get_array_value( $provider, 'limit', 5 ) );
+		$filtered = (bool) $data['kinds'];
 
-		$data['limit'] = $data['kinds'] ? min( absint( hp\get_array_value( $provider, 'max_limit', 20 ) ), $limit * 4 ) : $limit;
+		if ( $data['countries'] && ! hp\get_array_value( $provider, 'country_param', true ) ) {
+			$filtered = true;
+		}
+
+		$data['limit'] = $filtered ? min( absint( hp\get_array_value( $provider, 'max_limit', 20 ) ), $limit * 4 ) : $limit;
 
 		return $data;
 	}

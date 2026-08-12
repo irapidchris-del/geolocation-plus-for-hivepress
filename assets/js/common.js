@@ -1238,12 +1238,24 @@
 				navigator.geolocation.getCurrentPosition(function (position) {
 					geocoder.reverse(position.coords.latitude, position.coords.longitude).then(function (result) {
 
-						// The restriction applies here too. Reverse geocoding returns the
-						// building or street the visitor is standing on, so on a site restricted
-						// to City "Locate Me" was writing exactly the street address the owner
-						// had just forbidden the suggestion list from offering - the one route
-						// into the field that skipped the check.
-						if (result && isAllowedKind(result.kind)) {
+						// Deliberately NOT filtered by Suggestion Types, after trying it the other
+						// way for one release.
+						//
+						// The reasoning for filtering was that reverse geocoding returns the
+						// building the visitor is standing on, so on a City-restricted site
+						// "Locate Me" wrote a street address the drop-down would have refused.
+						// True, and much less important than what it cost: there is nothing to
+						// fall back to here, so the button simply did nothing. No text, no error,
+						// no movement - on a setting the plugin's own description recommends
+						// (reported from live staging, 2026-08-12, reproduced A/B/A).
+						//
+						// A dead control is worse than a precise answer. The restriction exists to
+						// keep a LIST of choices consistent; this is not a list, it is where the
+						// visitor actually is, and there is no second-best place to offer them.
+						// Precision is separately handled by "Hide the exact address", which still
+						// applies to this result and is the setting that owners reach for when
+						// they mean privacy.
+						if (result) {
 							apply(result);
 						}
 					});
