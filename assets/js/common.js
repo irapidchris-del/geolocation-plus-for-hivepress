@@ -266,6 +266,24 @@
 	}
 
 	/**
+	 * True when a result is in one of the countries the site allows.
+	 *
+	 * Only ever applied to a result that states its country. Every provider but Photon is told the
+	 * restriction in the request itself, so their results carry nothing here and pass straight
+	 * through - and a result of unknown country is kept rather than dropped, because hiding a place
+	 * the visitor can see on the map is worse than showing one extra.
+	 */
+	function isAllowedCountry(country) {
+		if (!country || !data.countries || !data.countries.length) {
+			return true;
+		}
+
+		return $.inArray(String(country).toUpperCase(), $.map(data.countries, function (code) {
+			return String(code).toUpperCase();
+		})) !== -1;
+	}
+
+	/**
 	 * Reads a coordinate that may be a method or a plain property.
 	 */
 	function coordinate(point, name) {
@@ -402,7 +420,15 @@
 			latitude: point.length > 1 ? point[1] : null,
 			longitude: point.length > 1 ? point[0] : null,
 			kind: kind,
-			street: props.street || ''
+			street: props.street || '',
+
+			// Photon is the one provider with no country parameter to send, so the Countries
+			// setting had no effect on it at all: a UK-only directory offered Ludlow in Illinois,
+			// Maine, Kentucky and Vermont above the Shropshire one (found on a live site,
+			// 2026-08-12). It does report the country per result, so the restriction is applied
+			// here instead - the same browser-side fallback the suggestion types already use where
+			// a provider cannot be told.
+			country: props.countrycode || ''
 		};
 	}
 
@@ -1054,7 +1080,7 @@
 				}
 
 				results = $.grep(items || [], function (item) {
-					return item.label && isAllowedKind(item.kind);
+					return item.label && isAllowedKind(item.kind) && isAllowedCountry(item.country);
 				}).slice(0, 5);
 
 				if (!results.length) {

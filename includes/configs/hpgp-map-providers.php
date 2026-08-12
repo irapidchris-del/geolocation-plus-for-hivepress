@@ -40,6 +40,12 @@ return [
 		'max_limit'   => 20,
 		'max_zoom'    => 19,
 
+		// Twice the default. Photon is a free community service and its latency is measured in
+		// seconds, not milliseconds - fifteen on a live site, answering 200 rather than rate
+		// limiting - so a ten second ceiling turned region generation into a silent no-op there.
+		// See the note in request_reverse() for why this is not simply raised everywhere.
+		'reverse_timeout' => 20,
+
 		// Photon accepts only these language codes, and an unsupported one is a hard 400 rather
 		// than an ignored parameter: `?q=edinburgh&lang=es` answers
 		// {"lang":[{"message":"Language is not supported. Supported are: default, de, en, fr"}]}

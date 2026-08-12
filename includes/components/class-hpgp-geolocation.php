@@ -1560,7 +1560,24 @@ final class Hpgp_Geolocation extends Component {
 		$response = wp_remote_get(
 			$url,
 			[
-				'timeout'    => 10,
+				// Per provider, because the free community services are slower than the paid ones
+				// and ten seconds is not enough for them. Measured on a live site: Photon answered
+				// a suggestion request in roughly fifteen seconds - HTTP 200, not a rate limit,
+				// just latency - while this lookup gave up at ten and the listing was saved with
+				// its coordinates but filed under no region at all (2026-08-12).
+				//
+				// That failure is asymmetric and easy to miss, which is what makes it worth paying
+				// for: the address saves, the region silently does not, and the listing quietly
+				// drifts out of its own archive. The settings notice is the only thing that says
+				// so.
+				//
+				// Not raised across the board, and not retried. This call blocks a listing save, so
+				// every second here is a second the visitor waits, and a retry doubles the worst
+				// case for no gain against a service that is simply slow rather than flaky. The
+				// real answer is to stop doing this during the save at all - see the readme's note
+				// on region generation - which is a bigger change than a patch release should
+				// carry.
+				'timeout'    => max( 5, min( 30, absint( hp\get_array_value( $provider, 'reverse_timeout', 10 ) ) ) ),
 
 				// Left to itself WordPress sends "WordPress/{version}; {site url}", handing a
 				// third-party geocoder the site's address AND its exact core version on every
