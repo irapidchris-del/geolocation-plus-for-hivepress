@@ -82,7 +82,7 @@ return [
 				'fields'      => [
 					'geolocation_plus_suggestion_types' => [
 						'label'       => esc_html__( 'Suggestion Types', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'Select the kinds of place people are allowed to choose. Leave this empty to allow everything, which is the standard behaviour. Geocoders vary in how strictly they honour this, so a few unexpected results can still appear.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Select the kinds of place people are allowed to choose. Leave this empty to allow everything, which is the standard behaviour. This applies to the location field a listing is filed and searched by, and not to the Location attributes you create yourself, which keep offering everything so that a field named for an address can still accept one. Geocoders vary in how strictly they honour this, so a few unexpected results can still appear.', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'select',
 						'multiple'    => true,
 						'statuses'    => [ 'optional' => null ],

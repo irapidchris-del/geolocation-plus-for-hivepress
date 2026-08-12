@@ -77,6 +77,20 @@
 	}
 
 	/**
+	 * True when a comma part of an address IS the street, with or without a house number in front.
+	 *
+	 * Deliberately anchored to the end and requiring a space, so "Waterloo Place" and
+	 * "6 Waterloo Place" both count while "Waterloo Place Gardens" does not.
+	 */
+	function isStreetPart(part, street) {
+		if (!part || !street) {
+			return false;
+		}
+
+		return part === street || part.slice(-street.length - 1) === ' ' + street;
+	}
+
+	/**
 	 * Drops the street part of a chosen place when exact addresses are meant to be hidden.
 	 *
 	 * "Hide the exact address" is not only about the map. The Geolocation extension also rewrites
@@ -101,20 +115,6 @@
 	 * Where a provider names the street outright it is used instead of counting parts, because
 	 * counting assumes the street comes first and on some results it does not.
 	 */
-	/**
-	 * True when a comma part of an address IS the street, with or without a house number in front.
-	 *
-	 * Deliberately anchored to the end and requiring a space, so "Waterloo Place" and
-	 * "6 Waterloo Place" both count while "Waterloo Place Gardens" does not.
-	 */
-	function isStreetPart(part, street) {
-		if (!part || !street) {
-			return false;
-		}
-
-		return part === street || part.slice(-street.length - 1) === ' ' + street;
-	}
-
 	function privacyLabel(result) {
 		if (!data.scatter || !result || !result.label) {
 			return result ? result.label : '';
@@ -321,8 +321,8 @@
 	/**
 	 * Adds the configured suggestion-type restriction to a request.
 	 */
-	function addTypeParam(params) {
-		if (!data.typeParam || !data.typeValue || !data.typeValue.length) {
+	function addTypeParam(params, options) {
+		if ((options && options.anyKind) || !data.typeParam || !data.typeValue || !data.typeValue.length) {
 			return params;
 		}
 
@@ -489,12 +489,12 @@
 	 */
 	var geocoders = {
 		photon: {
-			search: function (term) {
+			search: function (term, options) {
 				var params = addTypeParam({
 					q: term,
 					limit: data.limit || 5,
 					lang: data.language
-				});
+				}, options);
 
 				return $.getJSON(data.searchUrl + '?' + buildQuery(params)).then(function (response) {
 					return $.map((response && response.features) || [], photonResult);
@@ -515,14 +515,14 @@
 		},
 
 		locationiq: {
-			search: function (term) {
+			search: function (term, options) {
 				var params = addTypeParam({
 					key: data.key,
 					q: term,
 					limit: data.limit || 5,
 					dedupe: 1,
 					'accept-language': data.language
-				});
+				}, options);
 
 				if (data.countries && data.countries.length) {
 					params.countrycodes = data.countries.join(',');
@@ -579,14 +579,14 @@
 		},
 
 		geoapify: {
-			search: function (term) {
+			search: function (term, options) {
 				var params = addTypeParam({
 					text: term,
 					apiKey: data.key,
 					limit: data.limit || 5,
 					lang: data.language,
 					format: 'json'
-				});
+				}, options);
 
 				if (data.countries && data.countries.length) {
 					params.filter = 'countrycode:' + data.countries.join(',').toLowerCase();
@@ -631,13 +631,13 @@
 		},
 
 		maptiler: {
-			search: function (term) {
+			search: function (term, options) {
 				var params = addTypeParam({
 					key: data.key,
 					language: data.language,
 					limit: data.limit || 5,
 					autocomplete: true
-				});
+				}, options);
 
 				if (data.countries && data.countries.length) {
 					params.country = data.countries.join(',');
@@ -684,7 +684,7 @@
 		},
 
 		mapbox: {
-			search: function (term) {
+			search: function (term, options) {
 				var params = {
 					access_token: data.key,
 					language: data.language,
@@ -692,7 +692,7 @@
 					autocomplete: true
 				};
 
-				if (data.types && data.types.length) {
+				if (!(options && options.anyKind) && data.types && data.types.length) {
 					params.types = data.types.join(',');
 				}
 
@@ -725,7 +725,7 @@
 		 * legacy autocomplete service as a fallback for keys that predate them.
 		 */
 		google: {
-			search: function (term) {
+			search: function (term, options) {
 				var deferred = $.Deferred();
 
 				if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
@@ -737,7 +737,7 @@
 					language: data.language
 				};
 
-				if (data.types && data.types.length) {
+				if (!(options && options.anyKind) && data.types && data.types.length) {
 					request.includedPrimaryTypes = data.types.slice(0, 5);
 				}
 
@@ -914,6 +914,24 @@
 			// The field that names its own coordinate inputs is the custom one.
 			ownsRegion = 'hpgp-location' !== container.data('component'),
 			regionField = ownsRegion ? form.find('input[data-region]') : $(),
+
+			// Suggestion Types governs the location a listing is FILED and SEARCHED by, and stops
+			// there. Applied to a custom attribute as well it made a field the owner had named
+			// "Studio Address" unable to accept an address: with the setting on City, Google was
+			// asked for localities only and correctly returned nothing, so the box said "No
+			// matching places found" and there was no way to reach the answer (reported from live
+			// staging, 2026-08-12).
+			//
+			// The setting's own description promises to keep saved locations consistent, which is
+			// about the field people search by. An attribute is a second, separate place with its
+			// own purpose - a meeting point, a collection address, a studio - and the owner already
+			// chose that purpose when they named it. Restricting it was never advertised and is
+			// rarely what anybody wants.
+			//
+			// It exempts the REQUEST as well as the filtering. On several providers the restriction
+			// travels in the query itself, so filtering alone would still have asked the geocoder
+			// for cities and got cities back.
+			anyKind = !ownsRegion,
 			minLength = data.minLength,
 			results = [],
 			active = -1,
@@ -1074,13 +1092,13 @@
 
 			renderMenu([], data.strings.searching);
 
-			geocoder.search(term).then(function (items) {
+			geocoder.search(term, { anyKind: anyKind }).then(function (items) {
 				if (id !== requestId) {
 					return;
 				}
 
 				results = $.grep(items || [], function (item) {
-					return item.label && isAllowedKind(item.kind) && isAllowedCountry(item.country);
+					return item.label && (anyKind || isAllowedKind(item.kind)) && isAllowedCountry(item.country);
 				}).slice(0, 5);
 
 				if (!results.length) {

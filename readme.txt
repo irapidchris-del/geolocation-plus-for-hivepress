@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,7 @@ Pick a provider and everything else follows: the map, the suggestion list, the "
 
 **Tidier addresses.** Choose what visitors see: the full address, the city only, the city and the country, everything except the country, and so on. Nothing is re-saved, so you can change your mind at any time and every existing listing follows immediately. There is also an option to shorten what gets saved as people pick a suggestion, if you would rather store the short version.
 
-**Restricted suggestions.** Decide which kinds of place people are allowed to choose: countries, regions, cities, districts, postcodes, street addresses, or any combination. This is the tidiest way to keep every saved location consistent, and it works on Google Maps and Mapbox too.
+**Restricted suggestions.** Decide which kinds of place people are allowed to choose: countries, regions, cities, districts, postcodes, street addresses, or any combination. This is the tidiest way to keep every saved location consistent, and it works on Google Maps and Mapbox too. It governs the location a listing is filed and searched by; the Location attributes you create keep offering everything, so an attribute named for an address can still accept one.
 
 **A map block.** A "Location Map" block for the WordPress editor, and a matching `[hivepress_hpgp_map]` shortcode. Show your listings, your vendors or a single place; set the height, the zoom level and the map style; filter to one category or to featured listings only. Markers are clustered automatically.
 
@@ -103,6 +103,9 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.0.4 =
+* The Suggestion Types setting no longer restricts the Location attributes you create. It governs the location a listing is filed and searched by, which is what its description promises; applied to an attribute as well it made a field named "Studio Address" unable to accept an address on a site restricted to cities. The setting now says where it applies.
 
 = 1.0.3 =
 * The Integrations settings page now says to restrict each API key to your own domain before pasting it in. The keys are used in the visitor browser, as these services intend, so they are readable by anyone who views a page with a map on it, and an unrestricted key can be used up by somebody else. This was only in the readme before, which is not open when you are pasting a key into a box.
