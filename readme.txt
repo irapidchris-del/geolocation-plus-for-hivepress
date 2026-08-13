@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.4
+Stable tag: 1.0.5
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,7 +60,7 @@ Nothing is sent anywhere until you choose a map provider that needs it, and then
 * Map styles, marker colour and a fixed zoom level apply to the providers this plugin adds. Google Maps and Mapbox draw their own maps and keep their own appearance.
 * Region pages are built by looking up the coordinates, and the search box matches them by name. Where a geocoder names a place differently in a search result and in a coordinate lookup ("Glasgow" against "Glasgow City", for example), the search falls back to the ordinary radius search, which is what HivePress does anyway.
 * The "Address Format" setting splits addresses on commas. That is exactly right for a location chosen from the suggestion list, and it can look odd on a hand-typed address with unusual punctuation. It also has no effect on themes that supply their own address markup, which the official ExpertHive, JobHive and MeetingHive themes do.
-* A custom location attribute is for recording and showing a second place, such as a meeting point. It stores real coordinates, but it is not plotted on the map block and cannot be searched by distance yet - the built-in Location field is the one radius search uses.
+* A custom location attribute is for recording and showing a second place, such as a meeting point. It stores real coordinates, but it is not plotted on the map block and cannot be searched by distance yet - the built-in Location field is the one radius search uses. Neither "Suggestion Types" nor "Hide the exact address" applies to it: you created the field and chose to show it, so what gets picked is what gets stored.
 * OpenStreetMap suggestions come from Photon, which serves English, German and French. On a site in any other language, place names come back in the local language of each place instead.
 * Region pages are worked out while a listing is being saved, so a slow geocoder delays the save and, if it takes too long, the listing is saved with its coordinates but filed under no region. The settings page tells you when that has happened and quotes the reason. OpenStreetMap is allowed twice as long as the other providers because it is a free community service and can take several seconds to answer, but a busy day on it can still time out. Re-saving the listing files it correctly; moving to one of the keyed providers avoids it.
 * Suggestion types are matched to whatever each provider offers, and the providers do not offer the same set. MapTiler reports neighbourhoods inside its city results rather than as a type of their own, so restricting to Neighbourhood returns little there.
@@ -103,6 +103,9 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.0.5 =
+* "Hide the exact address" no longer shortens the Location attributes you create, matching the way Suggestion Types behaves. It still shortens the listing's own location, which is what the setting is for. This also settles a difference nobody chose: the shortening only ever happened on OpenStreetMap, MapTiler, Geoapify and LocationIQ, so the same site behaved differently depending on which provider was selected.
 
 = 1.0.4 =
 * The Suggestion Types setting no longer restricts the Location attributes you create. It governs the location a listing is filed and searched by, which is what its description promises; applied to an attribute as well it made a field named "Studio Address" unable to accept an address on a site restricted to cities. The setting now says where it applies.

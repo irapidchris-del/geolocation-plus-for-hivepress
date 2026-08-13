@@ -1032,7 +1032,24 @@
 
 			// Privacy first, then the owner's display format: a coarsened address still gets
 			// shortened if they asked for that, but a shortened one is never re-expanded.
-			var label = privacyLabel(result);
+			//
+			// "Hide the exact address" applies to the listing's own location and not to the
+			// attributes an owner creates, for the same reason Suggestion Types does not: the field
+			// exists because they made it, named it, and chose to show it. Coarsening it undid the
+			// thing they had just been allowed to do - pick a street in a field called "Studio
+			// Address" and get "Marylebone, London" stored instead (reported from live staging,
+			// 2026-08-12).
+			//
+			// It also settles a disagreement between providers that nobody chose. The rule only
+			// ever fired on the providers this plugin adds: on Google and Mapbox `kindMap` is empty
+			// by design (class-hpgp-geolocation.php:440), so no result is ever classified as an
+			// address and the coarsening silently never ran. The same site behaved differently
+			// depending on which provider was selected. Whatever the right answer was, it could not
+			// be both.
+			//
+			// The listing's own location field is untouched: it still coarsens, which is the whole
+			// point of the setting and is what the map's privacy circle is drawn around.
+			var label = ownsRegion ? privacyLabel(result) : result.label;
 
 			field.val(data.formatInput ? formatAddress(label) : label);
 
