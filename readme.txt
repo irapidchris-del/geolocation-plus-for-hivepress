@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.6
+Stable tag: 1.0.7
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,7 +62,7 @@ Nothing is sent anywhere until you choose a map provider that needs it, and then
 * The "Address Format" setting splits addresses on commas. That is exactly right for a location chosen from the suggestion list, and it can look odd on a hand-typed address with unusual punctuation. It also has no effect on themes that supply their own address markup, which the official ExpertHive, JobHive and MeetingHive themes do.
 * A custom location attribute is for recording and showing a second place, such as a meeting point. It stores real coordinates, but it is not plotted on the map block and cannot be searched by distance yet - the built-in Location field is the one radius search uses. Neither "Suggestion Types" nor "Hide the exact address" applies to it: you created the field and chose to show it, so what gets picked is what gets stored.
 * OpenStreetMap suggestions come from Photon, which serves English, German and French. On a site in any other language, place names come back in the local language of each place instead.
-* Region pages are worked out while a listing is being saved, so a slow geocoder delays the save and, if it takes too long, the listing is saved with its coordinates but filed under no region. The settings page tells you when that has happened and quotes the reason. OpenStreetMap is allowed twice as long as the other providers because it is a free community service and can take several seconds to answer, but a busy day on it can still time out. Re-saving the listing files it correctly; moving to one of the keyed providers avoids it.
+* Region pages are filed a few moments after a listing is saved rather than during the save, so a slow geocoder never delays anybody. If a lookup fails, the settings page tells you and quotes the reason, and re-saving the listing tries again. OpenStreetMap is allowed twice as long as the other providers to answer, because it is a free community service and can take several seconds.
 * Suggestion types are matched to whatever each provider offers, and the providers do not offer the same set. MapTiler reports neighbourhoods inside its city results rather than as a type of their own, so restricting to Neighbourhood returns little there.
 * MapTiler has no reliable city level in the United Kingdom, so a listing in the middle of a large city whose districts are named can be filed under the district instead: a central Edinburgh address becomes "Old Town" under "City of Edinburgh". The tree is still correct, and smaller towns and cities are named as you would expect. The other providers do not have this problem. Each provider's section on the Integrations settings page carries a short note on how it names places, so you can read it while choosing rather than having to find it here.
 * Providers can name the same city differently, so switching provider on a site that already has region pages can create a second page for one city, such as "Edinburgh" alongside "City of Edinburgh". Nothing is lost, but you may want to merge them under Listings > Regions.
@@ -103,6 +103,10 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.0.7 =
+* Region pages are now worked out in the background just after a listing is saved, rather than during the save. On a busy site, a slow answer from a free geocoding service could previously hold the server long enough to cause timeout errors for other visitors; nothing waits on the geocoder any more.
+* Restores the three display template files that were missing from the 1.0.6 download, which made the address line disappear from listing, vendor and request pages on most themes.
 
 = 1.0.6 =
 * Fixed: the author shown on the Plugins screen now reads "ChrisB @ HivePress Community", matching every other extension in the range.

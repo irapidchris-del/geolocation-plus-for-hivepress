@@ -97,6 +97,10 @@ final class Hpgp_Geolocation extends Component {
 		// Give the region terms that already existed a code this plugin can match.
 		add_action( 'admin_init', [ $this, 'backfill_region_codes' ] );
 
+		// The background half of region generation. Registered unconditionally, because the
+		// Action Scheduler runner is a separate request from the one that queued the job.
+		add_action( 'hpgp_update_regions', [ $this, 'run_region_update' ], 10, 2 );
+
 		// Add coordinates to custom location attributes. Deferred to `hivepress/v1/setup`
 		// because the list of attribute-enabled models is only settled there - the Attribute
 		// component applies its own models filter from that action
@@ -1172,7 +1176,24 @@ final class Hpgp_Geolocation extends Component {
 	}
 
 	/**
-	 * Rebuilds a model's regions from its coordinates.
+	 * Queues a model's regions to be rebuilt from its coordinates.
+	 *
+	 * Queues, never looks up. This handler runs INSIDE the visitor's save request, and the lookup
+	 * behind it is a blocking call to a third-party geocoder - up to twenty seconds on the free
+	 * OpenStreetMap service, which was measured answering in 15 to 38 seconds on real days. One
+	 * slow save holds one PHP worker for that whole time, and shared hosting runs a handful of
+	 * workers: a few vendors saving listings while the geocoder has a slow day ties up the pool,
+	 * and every OTHER visitor's request then queues at the gateway until it gives up. That is how
+	 * a per-save delay presents as site-wide 504 errors on a busy site, which is exactly what a
+	 * real site with hundreds of daily visitors reported within a week of the first release
+	 * (2026-08-19).
+	 *
+	 * So the save request now only records that the work is needed. Action Scheduler - bundled
+	 * with HivePress core and used the same way by the Bookings extension - runs the lookup in the
+	 * background moments later, and `Scheduler::add_action()` already refuses a duplicate of a
+	 * pending job, so two quick saves of the same listing coalesce into one lookup. The handler
+	 * reads the listing's coordinates fresh when it runs, so it always files the LATEST position,
+	 * whichever save queued it.
 	 *
 	 * @param int $model_id Model ID.
 	 */
@@ -1182,6 +1203,37 @@ final class Hpgp_Geolocation extends Component {
 		$model_name = isset( $action[3] ) ? $action[3] : '';
 
 		if ( ! in_array( $model_name, $this->get_geolocation_models(), true ) ) {
+			return;
+		}
+
+		$scheduler = hivepress()->scheduler;
+
+		if ( $scheduler ) {
+			$scheduler->add_action( 'hpgp_update_regions', [ $model_name, (int) $model_id ] );
+
+			return;
+		}
+
+		// No scheduler component means something unusual about the install; a slow save there
+		// beats regions silently never being generated at all.
+		$this->run_region_update( $model_name, (int) $model_id );
+	}
+
+	/**
+	 * Rebuilds a model's regions from its coordinates, in the background.
+	 *
+	 * @param string $model_name Model name.
+	 * @param int    $model_id   Model ID.
+	 */
+	public function run_region_update( $model_name, $model_id ) {
+		if ( ! in_array( $model_name, $this->get_geolocation_models(), true ) ) {
+			return;
+		}
+
+		// Re-checked at RUN time rather than trusted from queue time: the owner may have switched
+		// provider or unticked region generation in the gap, and a queued job must not resurrect a
+		// setting they just turned off.
+		if ( is_null( $this->get_provider() ) || ! get_option( 'hp_geolocation_generate_regions' ) ) {
 			return;
 		}
 

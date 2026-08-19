@@ -26,7 +26,10 @@ jobs:
         run: |
           mkdir -p build/geolocation-plus-for-hivepress
           cp geolocation-plus-for-hivepress.php updater.php uninstall.php readme.txt build/geolocation-plus-for-hivepress/
-          cp -r includes assets languages build/geolocation-plus-for-hivepress/
+          # Every top-level directory that ships, BY NAME. A directory missing from this line is
+          # silently missing from every release while passing every local test: 1.0.6 shipped
+          # without templates/, and every listing page quietly lost its address line.
+          cp -r includes assets templates languages build/geolocation-plus-for-hivepress/
           cd build
           zip -r geolocation-plus-for-hivepress.zip geolocation-plus-for-hivepress
 
