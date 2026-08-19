@@ -492,3 +492,7 @@ msgstr ""
 #: updater.php:367
 msgid "Could not rename the update directory."
 msgstr ""
+
+#: updater.php:634
+msgid "GitHub limits how many update checks one server may make each hour, and this server has reached that limit. Nothing is wrong with the plugin or your site, and checking will work again within the hour."
+msgstr ""

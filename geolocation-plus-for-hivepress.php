@@ -3,7 +3,7 @@
  * Plugin Name: Geolocation Plus for HivePress
  * Plugin URI: https://github.com/irapidchris-del/geolocation-plus-for-hivepress
  * Description: Extends the HivePress Geolocation extension with free map providers, custom location attributes, tidier address display, restricted location suggestions and a customisable map block.
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: ChrisB @ HivePress Community
  * Author URI: https://community.hivepress.io/u/chrisb/summary
  * Text Domain: geolocation-plus-for-hivepress
@@ -21,7 +21,7 @@
 // Exit if accessed directly.
 defined( 'ABSPATH' ) || exit;
 
-define( 'HPGP_VERSION', '1.0.7' );
+define( 'HPGP_VERSION', '1.0.8' );
 define( 'HPGP_FILE', __FILE__ );
 
 // The author's support page. One place, so the Plugins row and the View details
