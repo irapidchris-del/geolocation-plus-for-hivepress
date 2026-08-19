@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,10 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.0.6 =
+* Fixed: the author shown on the Plugins screen now reads "ChrisB @ HivePress Community", matching every other extension in the range.
+* Added: a "Donate" link on the Plugins screen and in the plugin details popup, for anyone who would like to support the work. It appears nowhere else and gates nothing.
 
 = 1.0.5 =
 * "Hide the exact address" no longer shortens the Location attributes you create, matching the way Suggestion Types behaves. It still shortens the listing's own location, which is what the setting is for. This also settles a difference nobody chose: the shortening only ever happened on OpenStreetMap, MapTiler, Geoapify and LocationIQ, so the same site behaved differently depending on which provider was selected.

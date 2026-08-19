@@ -227,6 +227,7 @@ function get_plugin_information( $result, $action, $args ) {
 		'requires_php'  => $plugin_data['RequiresPHP'],
 		'last_updated'  => $release['published'],
 		'download_link' => $release['package'],
+		'donate_link'   => HPGP_SUPPORT_URL,
 		'sections'      => [
 			'description' => wpautop( esc_html( $plugin_data['Description'] ) ),
 			'changelog'   => $release['notes'] ? wpautop( esc_html( $release['notes'] ) ) : '<p>' . esc_html__( 'See the GitHub releases page for the changelog.', 'geolocation-plus-for-hivepress' ) . '</p>',

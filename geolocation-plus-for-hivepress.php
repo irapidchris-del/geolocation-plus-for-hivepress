@@ -3,8 +3,8 @@
  * Plugin Name: Geolocation Plus for HivePress
  * Plugin URI: https://github.com/irapidchris-del/geolocation-plus-for-hivepress
  * Description: Extends the HivePress Geolocation extension with free map providers, custom location attributes, tidier address display, restricted location suggestions and a customisable map block.
- * Version: 1.0.5
- * Author: ChrisB
+ * Version: 1.0.6
+ * Author: ChrisB @ HivePress Community
  * Author URI: https://community.hivepress.io/u/chrisb/summary
  * Text Domain: geolocation-plus-for-hivepress
  * Domain Path: /languages/
@@ -21,8 +21,12 @@
 // Exit if accessed directly.
 defined( 'ABSPATH' ) || exit;
 
-define( 'HPGP_VERSION', '1.0.5' );
+define( 'HPGP_VERSION', '1.0.6' );
 define( 'HPGP_FILE', __FILE__ );
+
+// The author's support page. One place, so the Plugins row and the View details
+// popup can never drift apart.
+define( 'HPGP_SUPPORT_URL', 'https://ko-fi.com/chrisbathivepresscommunity' );
 
 // Set up updates from GitHub releases. The file registers its own hooks and reads the two
 // constants above, so it has to be required after them.
@@ -128,6 +132,34 @@ add_filter(
 		return $links;
 	}
 );
+
+/**
+ * Adds the house "Donate" link to this plugin's row on the Plugins screen.
+ *
+ * WordPress fires plugin_row_meta for EVERY plugin on the screen, so without the basename
+ * test the link would appear on every row on the site. The markup is copied verbatim from
+ * the house spec in `releasing.md` rather than composed here: every plugin's row has to look
+ * identical and sessions have drifted before. The label is exactly "Donate", matching the
+ * wording WordPress itself uses in the details popup, and the icon is a Dashicon rather than
+ * Font Awesome because Dashicons is the admin's own font and is always loaded there.
+ * WordPress joins row-meta items with " | " itself, so this returns a bare anchor.
+ *
+ * @param array<string> $meta        Row meta links.
+ * @param string        $plugin_file Plugin file the row belongs to.
+ * @return array<string>
+ */
+function hpgp_add_row_meta( $meta, $plugin_file ) {
+	if ( plugin_basename( __FILE__ ) === $plugin_file ) {
+		$meta[] = '<a href="' . esc_url( HPGP_SUPPORT_URL ) . '" target="_blank" rel="noopener noreferrer">'
+			. '<span class="dashicons dashicons-star-filled" style="font-size:14px;line-height:1.3;"></span> '
+			. esc_html__( 'Donate', 'geolocation-plus-for-hivepress' )
+			. '</a>';
+	}
+
+	return $meta;
+}
+
+add_filter( 'plugin_row_meta', 'hpgp_add_row_meta', 10, 2 );
 
 /**
  * Shows a notice when a required plugin is missing.
