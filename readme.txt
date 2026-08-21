@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,17 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.0.9 =
+* Fixed - "View details" is back on the Plugins screen. WordPress only offers that link for a
+  plugin that has told it about itself, and this one stayed quiet whenever there was nothing to
+  update to, which is almost always. The details popup, its changelog and the donate link inside
+  it were all unreachable from the Plugins screen as a result.
+* Fixed - checking for updates no longer holds up an admin page. The check ran while WordPress was
+  building the Plugins screen, so on a site with several of these extensions one page load made one
+  request to GitHub after another and could sit there for many seconds, once, before behaving
+  normally again for hours. The check now runs in the background moments later. Pressing Check for
+  updates still asks GitHub straight away, because you are waiting for that answer.
 
 = 1.0.8 =
 * Checking for updates no longer reports "Could not reach GitHub" when nothing is wrong. GitHub allows a server only a limited number of anonymous update checks each hour, shared by every plugin on the site and, on shared hosting, by every other site on the same server. Running out is ordinary, but it was reported as though the site could not reach GitHub at all. Update checks now read the release from github.com, which sets no such limit, so the message no longer appears. If the limit is ever reached by some other route, the notice now says so plainly instead of blaming your connection.
