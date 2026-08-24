@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.9
+Stable tag: 1.0.10
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,15 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.0.10 =
+* Fixed - region searching now works for a model switched on after the plugin was installed. The
+  one-off pass that gives existing region terms their search codes skipped any model whose regions
+  did not exist yet, but marked itself finished anyway, so those terms never got codes and
+  searching one of them quietly fell back to a distance search. The pass now records each model
+  separately and picks up the rest later.
+* Fixed - deleting the plugin now also clears the update check's own leftovers and cancels its
+  background update check.
 
 = 1.0.9 =
 * Fixed - "View details" is back on the Plugins screen. WordPress only offers that link for a

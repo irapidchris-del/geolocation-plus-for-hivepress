@@ -1018,15 +1018,28 @@ final class Hpgp_Geolocation extends Component {
 	 * in the prefix), and otherwise from its DEPTH against the site's own Region Types order -
 	 * which is exactly the order the tree was built in, so it is a reading rather than a guess.
 	 *
-	 * Runs once per site. It only ever ADDS a meta row, never edits or removes one, so a second
-	 * run would be harmless anyway.
+	 * Runs once per MODEL, not once per site. The loop below skips any model whose region taxonomy
+	 * does not exist yet - a model the owner has not switched on - and the completion flag used to
+	 * be written at the end regardless, so switching that model on afterwards left its region
+	 * terms permanently without codes and every search of one of them silently fell through to a
+	 * radius search. Nothing ever ran again to notice. Recording which models were actually
+	 * finished is what makes "once" mean once per thing done rather than once per attempt.
+	 *
+	 * The option used to hold a version string; anything that is not an array is read as "nothing
+	 * recorded" and the backfill runs again, which also repairs a site left half-done by the old
+	 * behaviour. That is safe because this only ever ADDS a meta row, never edits or removes one.
 	 */
 	public function backfill_region_codes() {
-		if ( get_option( 'hp_geolocation_plus_codes_backfilled' ) ) {
+		if ( ! get_option( 'hp_geolocation_generate_regions' ) ) {
 			return;
 		}
 
-		if ( ! get_option( 'hp_geolocation_generate_regions' ) ) {
+		$backfilled = get_option( 'hp_geolocation_plus_codes_backfilled' );
+		$backfilled = is_array( $backfilled ) ? array_map( 'strval', $backfilled ) : [];
+
+		$models = $this->get_geolocation_models();
+
+		if ( ! array_diff( $models, $backfilled ) ) {
 			return;
 		}
 
@@ -1054,9 +1067,15 @@ final class Hpgp_Geolocation extends Component {
 			'postcode' => 'postcode',
 		];
 
-		foreach ( $this->get_geolocation_models() as $model ) {
+		foreach ( $models as $model ) {
+			if ( in_array( $model, $backfilled, true ) ) {
+				continue;
+			}
+
 			$taxonomy = hp\prefix( $model . '_region' );
 
+			// Not switched on yet. Left unmarked on purpose, so switching it on later still gets
+			// its codes; this costs one taxonomy_exists() per admin request until it does.
 			if ( ! taxonomy_exists( $taxonomy ) ) {
 				continue;
 			}
@@ -1115,9 +1134,13 @@ final class Hpgp_Geolocation extends Component {
 					add_term_meta( $term->term_id, 'hp_code', $code );
 				}
 			}
+
+			// Marked here, inside the loop, so a model that was skipped above is not recorded as
+			// finished on the strength of the models that were.
+			$backfilled[] = $model;
 		}
 
-		update_option( 'hp_geolocation_plus_codes_backfilled', HPGP_VERSION );
+		update_option( 'hp_geolocation_plus_codes_backfilled', array_values( array_unique( $backfilled ) ) );
 	}
 
 	/**
