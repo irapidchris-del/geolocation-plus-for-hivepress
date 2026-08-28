@@ -433,6 +433,21 @@
 	}
 
 	/**
+	 * Builds a suggestion out of one Mapbox feature.
+	 *
+	 * Shared by the two lookups, in the same shape as photonResult, so the forward and reverse
+	 * paths cannot drift apart in what they hand back.
+	 */
+	function mapboxResult(feature) {
+		return {
+			label: feature.place_name || feature.text,
+			latitude: feature.center ? feature.center[1] : null,
+			longitude: feature.center ? feature.center[0] : null,
+			kind: feature.place_type ? feature.place_type[0] : ''
+		};
+	}
+
+	/**
 	 * Reads what kind of place a LocationIQ result is.
 	 *
 	 * LocationIQ is the one provider that hands back raw OpenStreetMap tagging rather than a
@@ -688,7 +703,9 @@
 				var params = {
 					access_token: data.key,
 					language: data.language,
-					limit: 5,
+
+					// Was hardcoded to 5 while every other provider read the setting.
+					limit: data.limit || 5,
 					autocomplete: true
 				};
 
@@ -701,20 +718,47 @@
 				}
 
 				return $.getJSON('https://api.mapbox.com/geocoding/v5/mapbox.places/' + encodeURIComponent(term) + '.json?' + buildQuery(params)).then(function (response) {
-					return $.map((response && response.features) || [], function (feature) {
-						return {
-							label: feature.place_name || feature.text,
-							latitude: feature.center ? feature.center[1] : null,
-							longitude: feature.center ? feature.center[0] : null,
-							kind: feature.place_type ? feature.place_type[0] : ''
-						};
-					});
+					return $.map((response && response.features) || [], mapboxResult);
 				});
 			},
 
+			// Its own request, like every other provider here. This used to be a forward search on
+			// "longitude,latitude", which meant the forward parameters travelled with it and Mapbox
+			// refused the lot: "limit must be combined with a single type parameter when reverse
+			// geocoding" (HTTP 422, measured 2026-08-28). The same failure MapTiler answers 400 to,
+			// noted on its reverse above - so no limit here either, for the same reason. The first
+			// feature is the most specific one, so nothing is lost by taking the rest and ignoring
+			// them.
+			//
+			// Three things the forward request carried that a reverse lookup must not:
+			//
+			// 1. `limit`, which is what returned the 422 and made "Locate Me" dead on arrival for
+			//    every custom location attribute on a Mapbox site.
+			// 2. `types`, because Suggestion Types is deliberately not applied to this button - see
+			//    the note at the call site. Delegating to search applied it anyway on any site that
+			//    had set it, which is the exact regression that note describes being reverted.
+			// 3. `country`, which cannot improve a reverse answer and can only empty it. Mapbox
+			//    answers 200 with zero features rather than an error when the visitor is outside the
+			//    allowed countries - a traveller at the Eiffel Tower on a GB-restricted site got no
+			//    features and therefore no message, indistinguishable from a dead button (measured
+			//    2026-08-28). Where the visitor is standing is not a matter of opinion.
 			reverse: function (latitude, longitude) {
-				return geocoders.mapbox.search(longitude + ',' + latitude).then(function (results) {
-					return results.length ? results[0] : null;
+				return $.getJSON('https://api.mapbox.com/geocoding/v5/mapbox.places/' + encodeURIComponent(longitude + ',' + latitude) + '.json?' + buildQuery({
+					access_token: data.key,
+					language: data.language
+				})).then(function (response) {
+					var feature = response && response.features && response.features[0];
+
+					if (!feature) {
+						return null;
+					}
+
+					// The visitor's own position, not the centre of whatever matched it, matching
+					// maptiler and google. A coarse match would otherwise move the pin off them.
+					return $.extend(mapboxResult(feature), {
+						latitude: latitude,
+						longitude: longitude
+					});
 				});
 			}
 		},
@@ -1270,6 +1314,20 @@
 			button.on('click', function (e) {
 				e.preventDefault();
 
+				// Nothing on this path used to report a failure. getCurrentPosition had no error
+				// callback and the reverse promise had no rejection handler, so a refused permission,
+				// a device that cannot get a fix, and a geocoder error all ended the way a successful
+				// lookup with no result ends: in silence, with the only trace in the console.
+				//
+				// data.strings.failed already says the useful thing - type the address instead - and
+				// it can only be shown through the suggestion panel, which refuses to open over a
+				// field nobody is in. So the field is focused first, which is where the visitor has
+				// to go next regardless.
+				function fail() {
+					field.trigger('focus');
+					renderMenu([], data.strings.failed);
+				}
+
 				navigator.geolocation.getCurrentPosition(function (position) {
 					geocoder.reverse(position.coords.latitude, position.coords.longitude).then(function (result) {
 
@@ -1292,8 +1350,36 @@
 						// they mean privacy.
 						if (result) {
 							apply(result);
+
+							return;
 						}
-					});
+
+						// A lookup that worked and matched nothing is a different sentence from one
+						// that could not run.
+						field.trigger('focus');
+						renderMenu([], data.strings.noResults);
+					}, fail);
+				}, function (error) {
+
+					// A refused permission is the one failure the browser has already reported, in
+					// its own words and its own UI. Saying "location search is unavailable" on top of
+					// that would be both redundant and untrue - it is available, they declined it -
+					// so the field is simply focused and left for them to type in.
+					if (error && error.PERMISSION_DENIED === error.code) {
+						field.trigger('focus');
+
+						return;
+					}
+
+					fail();
+				}, {
+
+					// Left to itself the browser will accept a cached fix of any age and wait
+					// indefinitely for a new one, so a device that cannot get a position never
+					// reaches either callback and the button stays apparently dead for good.
+					enableHighAccuracy: true,
+					timeout: 10000,
+					maximumAge: 60000
 				});
 			});
 		} else {
