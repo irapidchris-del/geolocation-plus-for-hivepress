@@ -75,6 +75,18 @@ final class Hpgp_Geolocation extends Component {
 	const DEFAULT_MARKER_COLOR = '#3a77ff';
 
 	/**
+	 * Models whose next search form should have its location field removed.
+	 *
+	 * Written by alter_search_block() when a search block carries the hide-location attribute,
+	 * and consumed one-shot by alter_search_form_fields() when that block builds its form
+	 * moments later, inside the same render call. Keyed by model so two different models'
+	 * blocks on one page cannot bleed into each other.
+	 *
+	 * @var array
+	 */
+	protected $hide_search_location = [];
+
+	/**
 	 * Class constructor.
 	 *
 	 * @param array $args Component arguments.
@@ -108,6 +120,16 @@ final class Hpgp_Geolocation extends Component {
 		// so asking for the list from a constructor returns nothing at all.
 		add_action( 'hivepress/v1/setup', [ $this, 'register_attribute_filters' ], 100 );
 
+		// Add a "hide the location field" toggle to the HivePress search blocks. Registered
+		// unconditionally, not inside is_admin(): the meta filter has to run wherever the block
+		// classes initialise (the block editor, the REST block-renderer preview and the front
+		// end all do), and the instance filter is what carries the choice through to the form.
+		foreach ( self::PART_MODELS as $model ) {
+			add_filter( 'hivepress/v1/blocks/' . $model . '_search_form/meta', [ $this, 'alter_search_block_meta' ] );
+			add_filter( 'hivepress/v1/blocks/' . $model . '_search_form', [ $this, 'alter_search_block' ], 20 );
+			add_filter( 'hivepress/v1/forms/' . $model . '_search', [ $this, 'alter_search_form_fields' ], 300 );
+		}
+
 		if ( is_admin() ) {
 
 			// Alter settings.
@@ -121,17 +143,23 @@ final class Hpgp_Geolocation extends Component {
 
 			// Add the colour picker.
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_color_picker' ] );
+
+			// Add the quick links and dividers on the settings screen.
+			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_settings_assets' ] );
 		} else {
 
 			// Link the address to the chosen provider.
 			add_filter( 'hivepress/v1/routes', [ $this, 'alter_routes' ], 20 );
 
-			// Format displayed addresses.
-			if ( $this->get_address_format() ) {
-				foreach ( self::PART_MODELS as $model ) {
-					add_filter( 'hivepress/v1/templates/' . $model . '_view_block', [ $this, 'alter_model_template' ], 20 );
-					add_filter( 'hivepress/v1/templates/' . $model . '_view_page', [ $this, 'alter_model_template' ], 20 );
+			// Format displayed addresses. Per model, because the format, the length limit and
+			// the repeated-parts cleanup can each apply to one model and not another.
+			foreach ( self::PART_MODELS as $model ) {
+				if ( ! $this->is_address_formatted( $model ) ) {
+					continue;
 				}
+
+				add_filter( 'hivepress/v1/templates/' . $model . '_view_block', [ $this, 'alter_model_template' ], 20 );
+				add_filter( 'hivepress/v1/templates/' . $model . '_view_page', [ $this, 'alter_model_template' ], 20 );
 			}
 		}
 
@@ -313,6 +341,88 @@ final class Hpgp_Geolocation extends Component {
 	}
 
 	/**
+	 * Gets the address format for one model, honouring its override.
+	 *
+	 * Only listings and vendors have an override control; every other model inherits the main
+	 * Address Format, which is exactly how the plugin behaved before the overrides existed.
+	 * The stored value "full" means "no trimming" and maps to the empty format string - blank
+	 * cannot mean that here, because blank already means "inherit".
+	 *
+	 * @param string $model Model name.
+	 * @return string
+	 */
+	public function get_model_address_format( $model ) {
+		if ( in_array( $model, [ 'listing', 'vendor' ], true ) ) {
+			$format = (string) $this->get_option_value( 'geolocation_plus_' . $model . '_format', '' );
+
+			if ( 'full' === $format ) {
+				return '';
+			}
+
+			if ( $format ) {
+				return $format;
+			}
+		}
+
+		return $this->get_address_format();
+	}
+
+	/**
+	 * Gets the display length limit for one model, zero meaning no limit.
+	 *
+	 * @param string $model Model name.
+	 * @return int
+	 */
+	public function get_model_max_length( $model ) {
+		if ( ! in_array( $model, [ 'listing', 'vendor' ], true ) ) {
+			return 0;
+		}
+
+		return max( 0, $this->get_number_option( 'geolocation_plus_' . $model . '_max_length', 0 ) );
+	}
+
+	/**
+	 * True when a model's displayed address differs from the stored one in any way.
+	 *
+	 * This is what decides whether the model's location template part is re-pointed at our
+	 * formatted copy; with nothing to change, the extension's own output renders untouched.
+	 *
+	 * @param string $model Model name.
+	 * @return bool
+	 */
+	public function is_address_formatted( $model ) {
+		return $this->get_model_address_format( $model )
+			|| $this->get_model_max_length( $model )
+			|| get_option( 'hp_geolocation_plus_dedupe_parts' );
+	}
+
+	/**
+	 * Removes consecutive repeated address parts.
+	 *
+	 * Some providers repeat a part back to back - "Edinburgh, Edinburgh, Scotland, United
+	 * Kingdom" - and showing it twice reads as a fault. Only CONSECUTIVE repeats go: a suburb
+	 * legitimately named after its city ("Manchester Road, Manchester") keeps both, because
+	 * removing a non-adjacent repeat changes meaning rather than tidying noise. Byte-wise
+	 * comparison with an ASCII case fold, which matches identical provider output exactly.
+	 *
+	 * @param array $parts Address parts.
+	 * @return array
+	 */
+	protected function dedupe_parts( $parts ) {
+		$deduped = [];
+
+		foreach ( $parts as $part ) {
+			$last = end( $deduped );
+
+			if ( false === $last || 0 !== strcasecmp( (string) $last, (string) $part ) ) {
+				$deduped[] = $part;
+			}
+		}
+
+		return $deduped;
+	}
+
+	/**
 	 * Shortens an address for display.
 	 *
 	 * Purely textual: geocoders return their addresses as comma separated parts ordered from
@@ -320,22 +430,34 @@ final class Hpgp_Geolocation extends Component {
 	 * and taking the first gives the city. Nothing here touches what is stored, so switching
 	 * the setting back restores the full address for every existing entry.
 	 *
+	 * The model-less form is kept in step with formatAddress() in assets/js/common.js - change
+	 * one and change both. The per-model format and length limit are display-time only, so
+	 * they have no JavaScript twin.
+	 *
 	 * @param string $address Full address.
+	 * @param string $model Model name, for the per-model overrides. Null applies the main format.
 	 * @return string
 	 */
-	public function format_address( $address ) {
-		$format = $this->get_address_format();
+	public function format_address( $address, $model = null ) {
+		if ( ! is_string( $address ) || '' === trim( $address ) ) {
+			return $address;
+		}
 
-		if ( ! $format || ! is_string( $address ) || '' === trim( $address ) ) {
+		$format = $model ? $this->get_model_address_format( $model ) : $this->get_address_format();
+		$dedupe = (bool) get_option( 'hp_geolocation_plus_dedupe_parts' );
+		$max    = $model ? $this->get_model_max_length( $model ) : 0;
+
+		if ( ! $format && ! $dedupe && ! $max ) {
 			return $address;
 		}
 
 		// "Everything except the last part" is the one format that is not idempotent: applied to
 		// a value the browser already shortened at save time it removes a second part, so the
 		// page showed less than was stored and less than the setting describes. Every other
-		// format counts from the left and lands on the same answer twice.
+		// format counts from the left and lands on the same answer twice. Only the trimming is
+		// skipped; the cleanup and the length limit still apply.
 		if ( 'no_last' === $format && get_option( 'hp_geolocation_plus_format_input' ) ) {
-			return $address;
+			$format = '';
 		}
 
 		// Split, trim and drop any empty parts a trailing comma would leave behind. A closure
@@ -349,43 +471,62 @@ final class Hpgp_Geolocation extends Component {
 			)
 		);
 
-		if ( count( $parts ) < 2 ) {
+		if ( ! $parts ) {
 			return $address;
 		}
 
-		switch ( $format ) {
-			case 'first':
-				$parts = array_slice( $parts, 0, 1 );
-
-				break;
-
-			case 'first_two':
-				$parts = array_slice( $parts, 0, 2 );
-
-				break;
-
-			case 'first_last':
-				$parts = [ hp\get_first_array_value( $parts ), end( $parts ) ];
-
-				break;
-
-			case 'no_last':
-				$parts = array_slice( $parts, 0, -1 );
-
-				break;
-
-			case 'last':
-				$parts = [ end( $parts ) ];
-
-				break;
-
-			case 'custom':
-				$parts = array_slice( $parts, 0, max( 1, $this->get_number_option( 'geolocation_plus_address_parts', 1 ) ) );
-
-				break;
+		if ( $dedupe ) {
+			$parts = $this->dedupe_parts( $parts );
 		}
 
-		return implode( ', ', $parts );
+		if ( $format && count( $parts ) >= 2 ) {
+			switch ( $format ) {
+				case 'first':
+					$parts = array_slice( $parts, 0, 1 );
+
+					break;
+
+				case 'first_two':
+					$parts = array_slice( $parts, 0, 2 );
+
+					break;
+
+				case 'first_last':
+					$parts = [ hp\get_first_array_value( $parts ), end( $parts ) ];
+
+					break;
+
+				case 'no_last':
+					$parts = array_slice( $parts, 0, -1 );
+
+					break;
+
+				case 'last':
+					$parts = [ end( $parts ) ];
+
+					break;
+
+				case 'custom':
+					$parts = array_slice( $parts, 0, max( 1, $this->get_number_option( 'geolocation_plus_address_parts', 1 ) ) );
+
+					break;
+			}
+		}
+
+		$address = implode( ', ', $parts );
+
+		// The length limit runs last, over the already-shortened text, and always leaves the
+		// ellipsis so a trimmed address never reads as a complete one.
+		if ( $max ) {
+			$length = function_exists( 'mb_strlen' ) ? mb_strlen( $address ) : strlen( $address );
+
+			if ( $length > $max ) {
+				$address = function_exists( 'mb_substr' ) ? mb_substr( $address, 0, $max ) : substr( $address, 0, $max );
+				$address = rtrim( $address, " ,\t" ) . '…';
+			}
+		}
+
+		return $address;
 	}
 
 	/**
@@ -399,29 +540,39 @@ final class Hpgp_Geolocation extends Component {
 		$types    = $this->get_suggestion_types();
 
 		$data = [
-			'provider'    => $name,
-			'native'      => is_null( $provider ),
-			'minLength'   => max( 1, $this->get_number_option( 'geolocation_plus_min_length', 3 ) ),
-			'format'      => $this->get_address_format(),
-			'parts'       => max( 1, $this->get_number_option( 'geolocation_plus_address_parts', 1 ) ),
-			'formatInput' => (bool) get_option( 'hp_geolocation_plus_format_input' ),
-			'markerColor' => $this->get_marker_color(),
-			'maxZoom'     => absint( get_option( 'hp_geolocation_max_zoom', 18 ) ),
-			'scatter'     => (bool) get_option( 'hp_geolocation_hide_address' ),
+			'provider'          => $name,
+			'native'            => is_null( $provider ),
+			'minLength'         => max( 1, $this->get_number_option( 'geolocation_plus_min_length', 3 ) ),
+			'format'            => $this->get_address_format(),
+			'parts'             => max( 1, $this->get_number_option( 'geolocation_plus_address_parts', 1 ) ),
+			'formatInput'       => (bool) get_option( 'hp_geolocation_plus_format_input' ),
+			'dedupe'            => (bool) get_option( 'hp_geolocation_plus_dedupe_parts' ),
+
+			// Whether the suggestion LIST is drawn already shortened. Display only: what a picked
+			// suggestion saves is still governed by formatInput above.
+			'formatSuggestions' => (bool) get_option( 'hp_geolocation_plus_format_suggestions' ),
+
+			// Whether named venues are dropped from the suggestion list. The browser filters on
+			// each result's own classification, because only some providers can be told in the
+			// request.
+			'hidePois'          => (bool) get_option( 'hp_geolocation_plus_hide_pois' ),
+			'markerColor'       => $this->get_marker_color(),
+			'maxZoom'           => absint( get_option( 'hp_geolocation_max_zoom', 18 ) ),
+			'scatter'           => (bool) get_option( 'hp_geolocation_hide_address' ),
 			// Deduplicated: a live site was seen storing the same code twice, and this list becomes
 			// a comma-separated filter on LocationIQ and Geoapify.
-			'countries'   => array_values( array_unique( array_filter( (array) get_option( 'hp_geolocation_countries', [] ) ) ) ),
-			'language'    => hivepress()->translator->get_language(),
+			'countries'         => array_values( array_unique( array_filter( (array) get_option( 'hp_geolocation_countries', [] ) ) ) ),
+			'language'          => hivepress()->translator->get_language(),
 
 			// Which kinds of place count as a region, so the browser can fill the hidden field
 			// that switches a search over to a region page.
-			'regionTypes' => get_option( 'hp_geolocation_generate_regions' ) ? array_values( (array) get_option( 'hp_geolocation_region_types', [ 'place', 'district', 'region', 'country' ] ) ) : [],
+			'regionTypes'       => get_option( 'hp_geolocation_generate_regions' ) ? array_values( (array) get_option( 'hp_geolocation_region_types', [ 'place', 'district', 'region', 'country' ] ) ) : [],
 
 			// Not escaped. Their only consumer is jQuery's .text() in common.js, which escapes
 			// on its own; running esc_html__() here as well would turn a translated apostrophe
 			// into a literal &#039; on screen. Invisible in English, because none of the three
 			// source strings contains an escapable character.
-			'strings'     => [
+			'strings'           => [
 				'searching' => __( 'Searching…', 'geolocation-plus-for-hivepress' ),
 				'noResults' => __( 'No matching places found', 'geolocation-plus-for-hivepress' ),
 				'failed'    => __( 'Location search is unavailable, please type the address instead', 'geolocation-plus-for-hivepress' ),
@@ -517,7 +668,7 @@ final class Hpgp_Geolocation extends Component {
 		// had nothing left to keep. Ludlow and Boston hid it, because their British entry happens
 		// to fall inside the first five.
 		$limit    = absint( hp\get_array_value( $provider, 'limit', 5 ) );
-		$filtered = (bool) $data['kinds'];
+		$filtered = (bool) $data['kinds'] || $data['hidePois'];
 
 		if ( $data['countries'] && ! hp\get_array_value( $provider, 'country_param', true ) ) {
 			$filtered = true;
@@ -701,13 +852,29 @@ final class Hpgp_Geolocation extends Component {
 	 * @return array
 	 */
 	public function alter_location_field( $args ) {
-		$types = $this->get_suggestion_types();
+		$name   = $this->get_provider_name();
+		$types  = $this->get_suggestion_types();
+		$mapped = $types ? $this->map_types( $types, hp\get_array_value( self::NATIVE_TYPES, $name, [] ) ) : [];
 
-		if ( ! $types ) {
-			return $args;
+		// Sliced to five because Google rejects a request carrying more primary types than that.
+		// Mapbox has no such ceiling, and slicing its list would break the POI exclusion below,
+		// which needs all eight non-POI types named.
+		if ( 'mapbox' !== $name ) {
+			$mapped = array_slice( $mapped, 0, 5 );
 		}
 
-		$mapped = $this->map_types( $types, hp\get_array_value( self::NATIVE_TYPES, $this->get_provider_name(), [] ) );
+		// Hide places of interest on Google Maps and Mapbox, whose suggestion boxes are drawn by
+		// the providers themselves - the browser-side filter in common.js never sees them, so
+		// the exclusion has to travel in the request. Only needed when no Suggestion Types are
+		// set: the mapped vocabularies above never include a POI type, so any restriction at all
+		// already excludes venues. Google's "geocode" collection is its own name for "everything
+		// except establishments" (valid for both the modern and the legacy autocomplete);
+		// Mapbox has no such collection, so every non-POI type is named instead.
+		if ( ! $mapped && is_null( $this->get_provider() ) && get_option( 'hp_geolocation_plus_hide_pois' ) ) {
+			$mapped = 'mapbox' === $name
+				? [ 'country', 'region', 'postcode', 'district', 'place', 'locality', 'neighborhood', 'address' ]
+				: [ 'geocode' ];
+		}
 
 		if ( ! $mapped ) {
 			return $args;
@@ -717,10 +884,88 @@ final class Hpgp_Geolocation extends Component {
 		// (`helpers.php:395-411`), which is right for a class list and wrong here - the
 		// extension's script expects jQuery to hand it back as an array and calls join(',') on
 		// it. The extension encodes its own data-countries the same way.
-		// Sliced to five because Google rejects a request carrying more primary types than that.
-		$args['attributes']['data-types'] = wp_json_encode( array_slice( $mapped, 0, 5 ) );
+		$args['attributes']['data-types'] = wp_json_encode( $mapped );
 
 		return $args;
+	}
+
+	/**
+	 * Adds the hide-location toggle to a search block's editor settings.
+	 *
+	 * A block's settings double as its Gutenberg attributes (`components/class-editor.php`
+	 * builds both from the same table), so this one filter gives every Listing Search Form and
+	 * Vendor Search Form block a checkbox in the sidebar and stores the choice per block. Per
+	 * block rather than a global setting, because the usual reason to hide the field is one
+	 * specific placement - a hero already scoped to a city - while the header search keeps it.
+	 *
+	 * @param array $meta Block meta values.
+	 * @return array
+	 */
+	public function alter_search_block_meta( $meta ) {
+		$meta['settings']['hpgp_hide_location'] = [
+			'label'   => esc_html__( 'Hide the location field', 'geolocation-plus-for-hivepress' ),
+			'caption' => esc_html__( 'Hide the location field', 'geolocation-plus-for-hivepress' ),
+			'type'    => 'checkbox',
+			'_order'  => 100,
+		];
+
+		return $meta;
+	}
+
+	/**
+	 * Reads the hide-location choice off a search block instance.
+	 *
+	 * The block builds its form inside its own render() a moment after this filter runs, so
+	 * the choice is parked on the component for alter_search_form_fields() to consume. Blocks
+	 * rendered from templates never carry the attribute and change nothing here.
+	 *
+	 * @param array $args Block arguments.
+	 * @return array
+	 */
+	public function alter_search_block( $args ) {
+		if ( hp\get_array_value( $args, 'hpgp_hide_location' ) ) {
+			$model = explode( '/', current_filter() )[3];
+			$model = preg_replace( '/_search_form$/', '', $model );
+
+			$this->hide_search_location[ $model ] = true;
+		}
+
+		return $args;
+	}
+
+	/**
+	 * Removes the location field from a search form the owner asked to hide it on.
+	 *
+	 * The coordinate and region fields go with it: left behind they are dead weight at best,
+	 * and at worst a stale hidden pair that keeps radius-filtering a search whose location box
+	 * no longer exists. Priority 300, after the Geolocation extension has added its `_region`
+	 * and `_radius` fields at 200 - removing them any earlier would only see them re-added.
+	 *
+	 * One-shot: the flag is cleared as it is consumed, so a second search form for the same
+	 * model on the same page - the header's, say - keeps its location field.
+	 *
+	 * @param array $form_args Form arguments.
+	 * @return array
+	 */
+	public function alter_search_form_fields( $form_args ) {
+		$model = explode( '/', current_filter() )[3];
+		$model = preg_replace( '/_search$/', '', $model );
+
+		if ( empty( $this->hide_search_location[ $model ] ) ) {
+			return $form_args;
+		}
+
+		$this->hide_search_location[ $model ] = false;
+
+		unset(
+			$form_args['fields']['location'],
+			$form_args['fields']['latitude'],
+			$form_args['fields']['longitude'],
+			$form_args['fields']['_region'],
+			$form_args['fields']['_radius']
+		);
+
+		return $form_args;
 	}
 
 	/**
@@ -900,7 +1145,7 @@ final class Hpgp_Geolocation extends Component {
 			$field['options'][ $name ] = $provider['label'];
 		}
 
-		$field['description'] = hp\get_array_value( $field, 'description', '' ) . ' ' . esc_html__( 'OpenStreetMap needs no account at all: its maps come from OpenStreetMap and its address search from Photon, which uses the same data. Both are free community services that ask busy sites not to lean on them, so move to MapTiler, Geoapify or LocationIQ once you have real traffic. Those three need a free API key, entered in the Integrations section, where there is a note on how each of them names places. Their vocabularies differ, so switching provider on a site that already has region pages can create a second page for a city under a slightly different name. Suggestions come back in English, German or French only, whatever your site language.', 'geolocation-plus-for-hivepress' );
+		$field['description'] = hp\get_array_value( $field, 'description', '' ) . ' ' . esc_html__( 'OpenStreetMap needs no account, but it is a free community service, so move to MapTiler, Geoapify or LocationIQ once you have real traffic. Those three need a free API key, entered in the Integrations section. Providers name places slightly differently, so switching on a site with region pages can create duplicates. Suggestions come back in English, German or French only.', 'geolocation-plus-for-hivepress' );
 
 		unset( $field );
 
@@ -931,17 +1176,60 @@ final class Hpgp_Geolocation extends Component {
 	}
 
 	/**
+	 * Checks whether the settings tab being rendered is one this plugin owns.
+	 *
+	 * READ THIS BEFORE "FIXING" IT TO USE $_GET['tab']. It cannot: HivePress
+	 * falls back to the FIRST tab whenever `tab` is absent from the address
+	 * (`hivepress/includes/components/class-admin.php`, `get_settings_tab()`),
+	 * so `admin.php?page=hp_settings` renders a real tab that the address does
+	 * not name. What the address cannot say, the registered fields can.
+	 * `Admin::register_settings()` builds the sections and fields for exactly
+	 * one tab and calls `add_settings_field()` with the prefixed option name
+	 * (same file, :275-325, verified against the installed core 1.7.31), so
+	 * after `admin_init` the `wp_settings_fields` global holds this plugin's
+	 * `hp_geolocation_plus_*` keys on the tabs it registers fields on and on no
+	 * other - the no-tab fallback included. This plugin owns two of them, the
+	 * Geolocation tab and its section of Integrations, and both answer true
+	 * here without either being named.
+	 *
+	 * Timing is the only thing to get right: HivePress registers on
+	 * `admin_init` priority 10, and `admin_enqueue_scripts` fires later, from
+	 * `admin-header.php`. Call this any earlier and it answers false and the
+	 * tab silently loses its assets, which is a worse failure than the one it
+	 * fixes. Full rule: resources/hivepress-settings.md, "The tab IS knowable
+	 * server-side: ask the registered fields".
+	 *
+	 * @return bool
+	 */
+	protected function is_settings_tab() {
+		if ( ! isset( $GLOBALS['wp_settings_fields']['hp_settings'] ) || ! is_array( $GLOBALS['wp_settings_fields']['hp_settings'] ) ) {
+			return false;
+		}
+
+		foreach ( $GLOBALS['wp_settings_fields']['hp_settings'] as $hp_section ) {
+			foreach ( array_keys( (array) $hp_section ) as $hp_field ) {
+				if ( 0 === strpos( (string) $hp_field, 'hp_geolocation_plus_' ) ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Enqueues the colour picker on the settings screen.
 	 *
 	 * HivePress ships a Color field but renders no picker for it at all - grepping core for
 	 * `wp-color-picker` returns nothing - so the picker is always ours to add. Scoped to the
 	 * settings screen rather than declared in the scripts config, which would load WordPress's
-	 * picker on every admin page for the sake of one field.
+	 * picker on every admin page for the sake of one field, and then to this plugin's own tabs,
+	 * so no other extension's settings screen carries it.
 	 *
 	 * @param string $hook Current admin page.
 	 */
 	public function enqueue_color_picker( $hook ) {
-		if ( false === strpos( (string) $hook, 'hp_settings' ) ) {
+		if ( false === strpos( (string) $hook, 'hp_settings' ) || ! $this->is_settings_tab() ) {
 			return;
 		}
 
@@ -961,6 +1249,59 @@ final class Hpgp_Geolocation extends Component {
 			[
 				'fields'  => [ 'hp_geolocation_plus_marker_color' ],
 				'default' => self::DEFAULT_MARKER_COLOR,
+			]
+		);
+	}
+
+	/**
+	 * Enqueues the shared settings-screen chrome on this plugin's own tabs.
+	 *
+	 * The quick-links anchor nav, the sideways floating Save control and the back-to-top button,
+	 * copied from the reference implementation in Account Menu Enhancer for HivePress so every
+	 * extension in this family puts the same controls in the same places
+	 * (resources/hivepress-settings.md, "The settings anchor nav: one shared marker class").
+	 *
+	 * HivePress renders each settings section as a plain h2 with no anchor, and the screen is
+	 * built from config arrays, so none of this can come from PHP; the script reads the headings
+	 * WordPress printed and builds the nav around them.
+	 *
+	 * Two gates, and neither replaces the other: this one decides whether the files load, and the
+	 * script's own `[name^="hp_geolocation_plus_"]` test decides whether it acts. Dropping the
+	 * second would make the chrome depend on this enqueue never regressing.
+	 *
+	 * @param string $hook Current admin page.
+	 */
+	public function enqueue_settings_assets( $hook ) {
+		if ( false === strpos( (string) $hook, 'hp_settings' ) || ! $this->is_settings_tab() ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'hpgp-admin-settings',
+			hivepress()->get_url( 'geolocation_plus_for_hivepress' ) . '/assets/css/admin-settings.css',
+			[],
+			HPGP_VERSION
+		);
+
+		wp_enqueue_script(
+			'hpgp-admin-settings',
+			hivepress()->get_url( 'geolocation_plus_for_hivepress' ) . '/assets/js/admin-settings.js',
+			[ 'jquery' ],
+			HPGP_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			'hpgp-admin-settings',
+			'hpgpBackendData',
+			[
+				'labels' => [
+					// The colon is part of the wording: it reads as a lead-in to the links that
+					// follow it, not as a heading over them.
+					'jumpTo'    => esc_html__( 'Jump to a section:', 'geolocation-plus-for-hivepress' ),
+					'save'      => esc_html__( 'Save Changes', 'geolocation-plus-for-hivepress' ),
+					'backToTop' => esc_html__( 'Back to top', 'geolocation-plus-for-hivepress' ),
+				],
 			]
 		);
 	}
@@ -1112,7 +1453,7 @@ final class Hpgp_Geolocation extends Component {
 					$cur   = $term;
 
 					while ( $cur && $cur->parent ) {
-						$depth++;
+						++$depth;
 
 						$cur = get_term( $cur->parent, $taxonomy );
 
@@ -1591,7 +1932,6 @@ final class Hpgp_Geolocation extends Component {
 
 		switch ( $geocoder ) {
 			case 'maptiler':
-
 				// No `limit`, deliberately. MapTiler rejects it on a REVERSE lookup unless it is
 				// paired with exactly one `types` value: the response is
 				// HTTP 400 "ERR_VALIDATION: Parameter limit must be combined with a single type
@@ -1732,13 +2072,6 @@ final class Hpgp_Geolocation extends Component {
 		return $body;
 	}
 
-	/**
-	 * Turns a reverse geocoding response into region names keyed by our region types.
-	 *
-	 * @param array $provider Provider arguments.
-	 * @param array $response Decoded response.
-	 * @return array
-	 */
 	/**
 	 * Turns a MapTiler reverse response into region names.
 	 *

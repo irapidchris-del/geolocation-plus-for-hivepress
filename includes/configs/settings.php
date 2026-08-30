@@ -7,6 +7,9 @@
  * The dynamic parts - the extra map providers, and the map styles that depend on which
  * provider is chosen - are added by the component instead, because they are not static.
  *
+ * Copy style: descriptions carry the main points only. The evidence behind each rule lives in
+ * code comments, not in the tooltip - a tooltip that scrolls is a tooltip nobody reads.
+ *
  * @package GeolocationPlus\Configs
  */
 
@@ -27,18 +30,31 @@ if ( ! hivepress()->get_version( 'geolocation' ) ) {
 	return [];
 }
 
+// The per-model format overrides share one option list. "Same as Address Format" is the blank
+// default so an existing site keeps behaving exactly as before the overrides existed, and
+// "Full address" is a distinct value because blank already means "inherit".
+$hpgp_override_formats = [
+	''           => esc_html__( 'Same as the Address Format above', 'geolocation-plus-for-hivepress' ),
+	'full'       => esc_html__( 'Full address', 'geolocation-plus-for-hivepress' ),
+	'first'      => esc_html__( 'First part only (Edinburgh)', 'geolocation-plus-for-hivepress' ),
+	'first_two'  => esc_html__( 'First two parts (Edinburgh, Scotland)', 'geolocation-plus-for-hivepress' ),
+	'first_last' => esc_html__( 'First and last parts (Edinburgh, United Kingdom)', 'geolocation-plus-for-hivepress' ),
+	'no_last'    => esc_html__( 'Everything except the last part (Edinburgh, Scotland)', 'geolocation-plus-for-hivepress' ),
+	'last'       => esc_html__( 'Last part only (United Kingdom)', 'geolocation-plus-for-hivepress' ),
+];
+
 return [
 	'geolocation'  => [
 		'sections' => [
 			'hpgp_display'     => [
 				'title'       => esc_html__( 'Address Display', 'geolocation-plus-for-hivepress' ),
-				'description' => esc_html__( 'Locations are usually saved in full, such as "Edinburgh, Scotland, United Kingdom". These settings shorten what visitors see. What is already stored is left alone, so you can switch back at any time and nothing has to be re-entered, unless you tick the last setting in this section, which shortens new entries as they are saved.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Shortens the addresses visitors see, such as "Edinburgh" instead of "Edinburgh, Scotland, United Kingdom". Stored addresses are left alone unless the Saved Value setting is ticked, so you can switch back at any time.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 20,
 
 				'fields'      => [
-					'geolocation_plus_address_format' => [
+					'geolocation_plus_address_format'     => [
 						'label'       => esc_html__( 'Address Format', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'Choose how much of each saved address to show. Addresses are split on commas, so "Edinburgh, Scotland, United Kingdom" has three parts, counted from the left. A theme that supplies its own address markup keeps it, so this has no effect on ExpertHive, JobHive or MeetingHive.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'How much of each saved address to show. Addresses are split on commas, counted from the left. Themes that draw their own address line (ExpertHive, JobHive, MeetingHive) keep it, so this has no effect there.', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'select',
 						'statuses'    => [ 'optional' => null ],
 						'_order'      => 10,
@@ -54,9 +70,9 @@ return [
 						],
 					],
 
-					'geolocation_plus_address_parts'  => [
+					'geolocation_plus_address_parts'      => [
 						'label'       => esc_html__( 'Number of Parts (used with "A set number of parts")', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'How many comma separated parts to show, counted from the left. Only used when the format above is set to a set number of parts.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'How many comma separated parts to show, counted from the left.', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'number',
 						'min_value'   => 1,
 						'max_value'   => 10,
@@ -64,25 +80,71 @@ return [
 						'_order'      => 20,
 					],
 
-					'geolocation_plus_format_input'   => [
+					'geolocation_plus_dedupe_parts'       => [
+						'label'       => esc_html__( 'Repeated Parts', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Some providers repeat a part, such as "Edinburgh, Edinburgh, Scotland". Tick this to show each repeated part once, wherever addresses appear.', 'geolocation-plus-for-hivepress' ),
+						'caption'     => esc_html__( 'Remove repeated address parts', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'checkbox',
+						'_order'      => 25,
+					],
+
+					'geolocation_plus_listing_format'     => [
+						'label'       => esc_html__( 'Listing Address Format', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Overrides the Address Format above for listing locations only.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'select',
+						'statuses'    => [ 'optional' => null ],
+						'options'     => $hpgp_override_formats,
+						'_order'      => 40,
+					],
+
+					'geolocation_plus_listing_max_length' => [
+						'label'       => esc_html__( 'Listing Address Length (characters)', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Trims the displayed listing address to this many characters, ending with an ellipsis. Leave it empty for no limit.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'number',
+						'min_value'   => 0,
+						'max_value'   => 200,
+						'statuses'    => [ 'optional' => null ],
+						'_order'      => 50,
+					],
+
+					'geolocation_plus_vendor_format'      => [
+						'label'       => esc_html__( 'Vendor Address Format', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Overrides the Address Format above for vendor locations only.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'select',
+						'statuses'    => [ 'optional' => null ],
+						'options'     => $hpgp_override_formats,
+						'_order'      => 60,
+					],
+
+					'geolocation_plus_vendor_max_length'  => [
+						'label'       => esc_html__( 'Vendor Address Length (characters)', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Trims the displayed vendor address to this many characters, ending with an ellipsis. Leave it empty for no limit.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'number',
+						'min_value'   => 0,
+						'max_value'   => 200,
+						'statuses'    => [ 'optional' => null ],
+						'_order'      => 70,
+					],
+
+					'geolocation_plus_format_input'       => [
 						'label'       => esc_html__( 'Saved Value', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'By default the full address is saved and only shortened when it is displayed. Tick this to shorten it as people pick a suggestion, so the short version is what gets saved. Existing entries are not changed. This applies to every location attribute you create, on any map provider, and to the built-in location field when one of the providers this plugin adds is selected.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'By default the full address is saved and only shortened for display. Tick this to save the shortened address as people pick a suggestion. Existing entries are not changed. Uses the main Address Format above.', 'geolocation-plus-for-hivepress' ),
 						'caption'     => esc_html__( 'Save the shortened address instead', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'checkbox',
-						'_order'      => 30,
+						'_order'      => 80,
 					],
 				],
 			],
 
 			'hpgp_suggestions' => [
 				'title'       => esc_html__( 'Location Suggestions', 'geolocation-plus-for-hivepress' ),
-				'description' => esc_html__( 'Controls the list of places that drops down while somebody types in a location field. Restricting it is the tidiest way to keep every saved location consistent, because people can no longer pick a street address when you wanted a city.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Controls the list of places offered while somebody types in a location field. Restricting it is the tidiest way to keep saved locations consistent.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 30,
 
 				'fields'      => [
-					'geolocation_plus_suggestion_types' => [
+					'geolocation_plus_suggestion_types'   => [
 						'label'       => esc_html__( 'Suggestion Types', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'Select the kinds of place people are allowed to choose. Leave this empty to allow everything, which is the standard behaviour. This applies to the location field a listing is filed and searched by, and not to the Location attributes you create yourself, which keep offering everything so that a field named for an address can still accept one. The extension setting "Hide the exact address" behaves the same way: it shortens the listing location and leaves your attributes alone. Geocoders vary in how strictly they honour this, so a few unexpected results can still appear.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'The kinds of place people may choose. Leave it empty to allow everything. Applies to the main location field only, never to the Location attributes you create. Geocoders vary in how strictly they honour this.', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'select',
 						'multiple'    => true,
 						'statuses'    => [ 'optional' => null ],
@@ -99,9 +161,25 @@ return [
 						],
 					],
 
-					'geolocation_plus_min_length'       => [
+					'geolocation_plus_hide_pois'          => [
+						'label'       => esc_html__( 'Places of Interest', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Hides named venues such as "Edinburgh Castle" from the suggestion list, so people pick addresses and place names instead. Applies to the main location field only.', 'geolocation-plus-for-hivepress' ),
+						'caption'     => esc_html__( 'Hide places of interest from suggestions', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'checkbox',
+						'_order'      => 15,
+					],
+
+					'geolocation_plus_format_suggestions' => [
+						'label'       => esc_html__( 'Shorten Suggestions', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Shows each suggestion already shortened by the Address Format. With Google Maps or Mapbox selected the built-in location field draws its own list, which cannot be shortened.', 'geolocation-plus-for-hivepress' ),
+						'caption'     => esc_html__( 'Apply the Address Format to suggestions', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'checkbox',
+						'_order'      => 17,
+					],
+
+					'geolocation_plus_min_length'         => [
 						'label'       => esc_html__( 'Minimum Length (characters)', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'How many characters somebody must type before suggestions are requested. Raising this cuts the number of requests your geocoder receives, which matters on the free plans. Google Maps and Mapbox run their own suggestion box and ignore this, so it applies to the location attributes you create and, when one of the providers this plugin adds is selected, to the built-in location field as well.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'How many characters must be typed before suggestions are requested. Raising it cuts requests to your geocoder, which matters on the free plans. Google Maps and Mapbox ignore this for the built-in location field.', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'number',
 						'min_value'   => 1,
 						'max_value'   => 10,
@@ -114,13 +192,13 @@ return [
 
 			'hpgp_maps'        => [
 				'title'       => esc_html__( 'Map Appearance', 'geolocation-plus-for-hivepress' ),
-				'description' => esc_html__( 'Applies to maps drawn by the map providers this plugin adds. Google Maps and Mapbox draw their own maps and are not affected by these settings.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Applies to maps drawn by the map providers this plugin adds. Google Maps and Mapbox draw their own maps and are not affected.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 40,
 
 				'fields'      => [
 					'geolocation_plus_map_style'    => [
 						'label'       => esc_html__( 'Map Style', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'The look of the map itself. The choices change depending on which map provider is selected above, so save the provider first.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'The look of the map itself. The choices depend on which map provider is selected, so save the provider first.', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'select',
 						'statuses'    => [ 'optional' => null ],
 						'_order'      => 10,
@@ -129,7 +207,7 @@ return [
 
 					'geolocation_plus_marker_color' => [
 						'label'       => esc_html__( 'Marker Colour', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'The colour of the pins on the map, as a six digit hex code such as #ff5a5f. Leave it empty for the default blue (#3a77ff), which is the marker colour the HivePress Geolocation extension uses on Google Maps.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'The colour of the pins on the map, as a six digit hex code such as #ff5a5f. Leave it empty for the default blue (#3a77ff).', 'geolocation-plus-for-hivepress' ),
 						'type'        => class_exists( '\HivePress\Fields\Color' ) ? 'color' : 'text',
 						'max_length'  => 7,
 						'_order'      => 20,
@@ -139,13 +217,13 @@ return [
 
 			'hpgp_data'        => [
 				'title'       => esc_html__( 'Removing the Plugin', 'geolocation-plus-for-hivepress' ),
-				'description' => esc_html__( 'What happens to these settings if you ever delete Geolocation Plus. They are kept by default, so reinstalling restores everything. WordPress will warn you that deleting a plugin also deletes its data whichever way the setting below is left, so ignore that wording and trust this setting.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'What happens to these settings if you ever delete Geolocation Plus. They are kept by default, so reinstalling restores everything. Ignore the generic warning WordPress shows when deleting a plugin; the setting below is what counts.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 50,
 
 				'fields'      => [
 					'geolocation_plus_delete_data' => [
 						'label'       => esc_html__( 'Deleting the Plugin', 'geolocation-plus-for-hivepress' ),
-						'description' => esc_html__( 'Tick this only if you want the settings removed for good, which cannot be undone. It removes the address, suggestion and map settings on this page, and the MapTiler, Geoapify and LocationIQ API keys in the Integrations section.', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Tick this only if you want everything removed for good, which cannot be undone. It removes every setting on this page and the API keys in the Integrations section.', 'geolocation-plus-for-hivepress' ),
 						'caption'     => esc_html__( 'Delete all data when this plugin is deleted', 'geolocation-plus-for-hivepress' ),
 						'type'        => 'checkbox',
 						'_order'      => 10,
@@ -160,7 +238,7 @@ return [
 		'sections' => [
 			'hpgp_maptiler'   => [
 				'title'       => 'MapTiler',
-				'description' => esc_html__( 'Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com, then copy the key from the Keys page of your account. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. Good coverage and seven map styles, the widest choice here. Worth knowing before you choose it: MapTiler has no single "city" level in the United Kingdom, so a listing in the middle of a large city can be filed under a named district of it, such as Old Town in Edinburgh. Smaller towns and cities are named as you would expect, and this plugin checks with MapTiler whether a county is also a city so that places like Cardiff and Nottingham come out right.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com and copy the key from the Keys page. Restrict the key to your own domain first: it is readable by anyone who views the page. Widest choice of map styles. In the United Kingdom a listing in a large city can be filed under a named district of it, such as Old Town in Edinburgh.', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 50,
 
 				'fields'      => [
@@ -175,7 +253,7 @@ return [
 
 			'hpgp_geoapify'   => [
 				'title'       => 'Geoapify',
-				'description' => esc_html__( 'Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project, then copy the API key it gives you. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. Names places consistently and handles cities well. It writes some labels its own way, abbreviating England to "ENG" and occasionally beginning a building result with "yes", which comes from the underlying map data rather than from this plugin.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project and copy the API key. Restrict the key to your own domain first: it is readable by anyone who views the page. Names places consistently, though it abbreviates some labels, such as England to "ENG".', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 60,
 
 				'fields'      => [
@@ -190,7 +268,7 @@ return [
 
 			'hpgp_locationiq' => [
 				'title'       => 'LocationIQ',
-				'description' => esc_html__( 'Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com, then copy the access token from the Dashboard. Restrict the key to your own domain in the provider dashboard before you paste it here: it is used in the visitor browser, as these services intend, so it is readable by anyone who views the page and an unrestricted key can be used up by somebody else. The most detailed addresses of the three, often naming the neighbourhood as well as the town. Its free plan allows about one search a second, which is ample for typing but can be reached by automated tools. It sometimes names a city by its council area, such as "Aberdeen City" rather than "Aberdeen", so a site that has already built region pages under another provider may end up with both.', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com and copy the access token from the Dashboard. Restrict the key to your own domain first: it is readable by anyone who views the page. The most detailed addresses of the three; the free plan allows about one search a second. It sometimes names a city by its council area, such as "Aberdeen City".', 'geolocation-plus-for-hivepress' ),
 				'_order'      => 70,
 
 				'fields'      => [

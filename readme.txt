@@ -2,9 +2,9 @@
 Contributors: ChrisB
 Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.10
+Stable tag: 1.1.3
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -103,6 +103,43 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.1.3 =
+* Changed - the settings screen now keeps its quick links in view as you scroll, and adds a
+  Save button and a back-to-top button that follow you down the page. The quick links, the
+  Save button and the back-to-top button now look and sit exactly the same in every one of
+  these extensions, so moving between two of their settings tabs no longer means hunting for
+  the same control in a different place.
+* Changed - the settings screen's styles and script are no longer loaded on other plugins'
+  settings tabs, so those tabs carry a little less to download.
+
+= 1.1.2 =
+* Changed - a code comment that described a different function had been left stranded above
+  the one explaining how MapTiler responses are read, so a developer saw the wrong
+  description. Comments only. Nothing about how the plugin works has changed.
+
+= 1.1.1 =
+* Fixed - the quick links added to the settings screen in 1.1.0 appeared on every HivePress
+  settings tab, including tabs belonging to other plugins. They now appear only on tabs that
+  carry this plugin's own settings, stand down when another plugin has already drawn a
+  navigation there, and never rewrite a heading anchor another plugin created.
+
+= 1.1.0 =
+* Added - separate address formats for listings and for vendors, each with an optional character
+  limit that trims the displayed address with an ellipsis. The main Address Format still applies
+  wherever no override is set, so nothing changes until you choose one.
+* Added - an option to remove repeated address parts, so a provider answering "Edinburgh,
+  Edinburgh, Scotland" displays as "Edinburgh, Scotland" everywhere addresses appear.
+* Added - a "Hide the location field" option on the HivePress search blocks in the WordPress
+  editor, for a search form placed somewhere the location is already decided.
+* Added - an option to hide places of interest, such as "Edinburgh Castle", from location
+  suggestions, on every provider including Google Maps and Mapbox.
+* Added - an option to show suggestions already shortened by the Address Format, so the list
+  matches what the page will display.
+* Added - quick links and dividers on the settings screen, and shorter setting descriptions.
+* Fixed - the "locate me" button now works on Mapbox. Its reverse lookup borrowed the forward
+  search request, whose parameters Mapbox refuses when reverse geocoding, so the button silently
+  did nothing. It also now reports plainly when a location cannot be found.
 
 = 1.0.10 =
 * Fixed - region searching now works for a model switched on after the plugin was installed. The

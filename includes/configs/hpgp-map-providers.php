@@ -24,8 +24,8 @@ defined( 'ABSPATH' ) || exit;
 
 return [
 	'osm'        => [
-		'label'       => 'OpenStreetMap',
-		'key_option'  => '',
+		'label'           => 'OpenStreetMap',
+		'key_option'      => '',
 
 		// Tiles come from OpenStreetMap; the address search comes from Photon, which is the
 		// same OpenStreetMap data indexed for type-ahead. OpenStreetMap's own Nominatim search
@@ -33,12 +33,12 @@ return [
 		// nothing at all and a suggestion list stays empty until the visitor happens to finish
 		// spelling the place (measured against the live service, 2026-08-06). Photon returns
 		// Edinburgh on the fourth character.
-		'geocoder'    => 'photon',
-		'search_url'  => 'https://photon.komoot.io/api/',
-		'reverse_url' => 'https://photon.komoot.io/reverse',
-		'limit'       => 5,
-		'max_limit'   => 20,
-		'max_zoom'    => 19,
+		'geocoder'        => 'photon',
+		'search_url'      => 'https://photon.komoot.io/api/',
+		'reverse_url'     => 'https://photon.komoot.io/reverse',
+		'limit'           => 5,
+		'max_limit'       => 20,
+		'max_zoom'        => 19,
 
 		// Twice the default. Photon is a free community service and its latency is measured in
 		// seconds, not milliseconds - fifteen on a live site, answering 200 rather than rate
@@ -58,9 +58,9 @@ return [
 		// this list every request from a Spanish, Italian, Polish or Dutch site would fail and
 		// the provider would be completely unusable there. Anything not listed falls back to
 		// "default", which returns each name in its own local language.
-		'languages'   => [ 'de', 'en', 'fr' ],
+		'languages'       => [ 'de', 'en', 'fr' ],
 
-		'styles'      => [
+		'styles'          => [
 			'standard'     => [
 				'label'       => esc_html__( 'Standard', 'geolocation-plus-for-hivepress' ),
 				'url'         => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -78,7 +78,7 @@ return [
 		// Photon takes a repeatable "layer" parameter. There is no postcode layer - asking for
 		// one is a 400 - and a postcode comes back typed as "other", so a site restricted to
 		// postcodes is filtered in the browser instead.
-		'types'       => [
+		'types'           => [
 			'multiple' => true,
 			'repeat'   => true,
 			'param'    => 'layer',
@@ -98,7 +98,7 @@ return [
 		// those as postcode suggestions and let the browser mint a "postcode:arthurs-seat"
 		// region code that no term could ever match. A real postcode is recovered instead by
 		// reading Photon's own osm_key/osm_value tags in common.js.
-		'kinds'       => [
+		'kinds'           => [
 			'country'  => [ 'country' ],
 			'region'   => [ 'state' ],
 			'district' => [ 'county' ],

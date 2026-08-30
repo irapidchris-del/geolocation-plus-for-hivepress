@@ -32,48 +32,109 @@
 	// option is highlighted.
 	var menuCount = 0;
 
-	/**
-	 * Shortens an address the same way the PHP side does.
-	 *
-	 * Kept in step with Hpgp_Geolocation::format_address(); change one and change both.
-	 */
-	function formatAddress(address) {
-		if (!data.format || typeof address !== 'string' || !address.trim()) {
-			return address;
-		}
+	// The OpenStreetMap top-level keys that mark a named venue - a thing AT an address rather
+	// than a place or an address in its own right. Shared by Photon (osm_key) and LocationIQ
+	// (class), which both hand back raw OSM tagging; each entry was measured carrying a full
+	// street address in its label (see the note at locationiqKind). `place`, `boundary`,
+	// `natural` and `landuse` are deliberately absent: those are places, not venues.
+	var POI_KEYS = ['tourism', 'amenity', 'shop', 'leisure', 'building', 'man_made', 'railway', 'aeroway', 'historic', 'office', 'craft', 'healthcare', 'emergency', 'military'];
 
-		var parts = address.split(',').map(function (part) {
+	/**
+	 * Splits an address into trimmed, non-empty comma parts.
+	 */
+	function splitParts(address) {
+		return String(address).split(',').map(function (part) {
 			return part.trim();
 		}).filter(function (part) {
 			return part.length > 0;
 		});
+	}
 
-		if (parts.length < 2) {
+	/**
+	 * Removes consecutive repeated address parts.
+	 *
+	 * Mirrors Hpgp_Geolocation::dedupe_parts(): only back-to-back repeats go, so a suburb
+	 * legitimately named after its city keeps both mentions.
+	 */
+	function dedupeParts(parts) {
+		var deduped = [];
+
+		$.each(parts, function (index, part) {
+			if (!deduped.length || deduped[deduped.length - 1].toLowerCase() !== part.toLowerCase()) {
+				deduped.push(part);
+			}
+		});
+
+		return deduped;
+	}
+
+	/**
+	 * Shortens an address the same way the PHP side does.
+	 *
+	 * Kept in step with Hpgp_Geolocation::format_address(); change one and change both. The
+	 * per-model overrides and length limits are display-time PHP concerns and have no twin here.
+	 */
+	function formatAddress(address) {
+		if (typeof address !== 'string' || !address.trim() || (!data.format && !data.dedupe)) {
 			return address;
 		}
 
-		switch (data.format) {
-			case 'first':
-				parts = parts.slice(0, 1);
-				break;
-			case 'first_two':
-				parts = parts.slice(0, 2);
-				break;
-			case 'first_last':
-				parts = [parts[0], parts[parts.length - 1]];
-				break;
-			case 'no_last':
-				parts = parts.slice(0, -1);
-				break;
-			case 'last':
-				parts = [parts[parts.length - 1]];
-				break;
-			case 'custom':
-				parts = parts.slice(0, Math.max(1, parseInt(data.parts, 10) || 1));
-				break;
+		var parts = splitParts(address);
+
+		if (!parts.length) {
+			return address;
+		}
+
+		if (data.dedupe) {
+			parts = dedupeParts(parts);
+		}
+
+		if (data.format && parts.length >= 2) {
+			switch (data.format) {
+				case 'first':
+					parts = parts.slice(0, 1);
+					break;
+				case 'first_two':
+					parts = parts.slice(0, 2);
+					break;
+				case 'first_last':
+					parts = [parts[0], parts[parts.length - 1]];
+					break;
+				case 'no_last':
+					parts = parts.slice(0, -1);
+					break;
+				case 'last':
+					parts = [parts[parts.length - 1]];
+					break;
+				case 'custom':
+					parts = parts.slice(0, Math.max(1, parseInt(data.parts, 10) || 1));
+					break;
+			}
 		}
 
 		return parts.join(', ');
+	}
+
+	/**
+	 * What a suggestion row displays, as opposed to what picking it saves.
+	 *
+	 * The Address Format only reshapes the LIST when the owner asked for that ("Shorten
+	 * Suggestions"), and only on the main location field - custom attributes are exempt from
+	 * every suggestion setting, for the reasons noted at initLocationField(). The repeated-part
+	 * cleanup applies everywhere, because it removes noise rather than information.
+	 */
+	function suggestionText(label, allowFormat) {
+		if (allowFormat && data.formatSuggestions) {
+			return formatAddress(label);
+		}
+
+		if (data.dedupe) {
+			var parts = splitParts(label);
+
+			return parts.length ? dedupeParts(parts).join(', ') : label;
+		}
+
+		return label;
 	}
 
 	/**
@@ -422,6 +483,10 @@
 			kind: kind,
 			street: props.street || '',
 
+			// A named venue, for the "hide places of interest" filter. The name test matters:
+			// an OSM building with no name is a plain address, not a place of interest.
+			poi: !!props.name && $.inArray(props.osm_key, POI_KEYS) !== -1,
+
 			// Photon is the one provider with no country parameter to send, so the Countries
 			// setting had no effect on it at all: a UK-only directory offered Ludlow in Illinois,
 			// Maine, Kentucky and Vermont above the Shropshire one (found on a live site,
@@ -443,7 +508,8 @@
 			label: feature.place_name || feature.text,
 			latitude: feature.center ? feature.center[1] : null,
 			longitude: feature.center ? feature.center[0] : null,
-			kind: feature.place_type ? feature.place_type[0] : ''
+			kind: feature.place_type ? feature.place_type[0] : '',
+			poi: !!feature.place_type && $.inArray('poi', feature.place_type) !== -1
 		};
 	}
 
@@ -488,7 +554,7 @@
 		//
 		// `place`, `boundary`, `natural` and `landuse` are deliberately absent: those are places,
 		// not addresses, and coarsening them would throw away the name that was the whole point.
-		if ($.inArray(result.class, ['tourism', 'amenity', 'shop', 'leisure', 'building', 'man_made', 'railway', 'aeroway', 'historic', 'office', 'craft', 'healthcare', 'emergency', 'military']) !== -1) {
+		if ($.inArray(result.class, POI_KEYS) !== -1) {
 			return 'poi';
 		}
 
@@ -545,11 +611,14 @@
 
 				return $.getJSON(data.searchUrl + '?' + buildQuery(params)).then(function (results) {
 					return $.map(results || [], function (result) {
+						var kind = locationiqKind(result);
+
 						return {
 							label: result.display_name,
 							latitude: parseFloat(result.lat),
 							longitude: parseFloat(result.lon),
-							kind: locationiqKind(result),
+							kind: kind,
+							poi: 'poi' === kind,
 							street: (result.address && result.address.road) || ''
 						};
 					});
@@ -614,6 +683,9 @@
 							latitude: parseFloat(result.lat),
 							longitude: parseFloat(result.lon),
 							kind: result.result_type,
+
+							// Geoapify's own vocabulary: "amenity" is its one venue type.
+							poi: 'amenity' === result.result_type,
 							street: result.street || ''
 						};
 					});
@@ -664,7 +736,8 @@
 							label: feature.place_name || feature.text,
 							latitude: feature.center ? feature.center[1] : null,
 							longitude: feature.center ? feature.center[0] : null,
-							kind: feature.place_type ? feature.place_type[0] : ''
+							kind: feature.place_type ? feature.place_type[0] : '',
+							poi: !!feature.place_type && $.inArray('poi', feature.place_type) !== -1
 						};
 					});
 				});
@@ -1035,7 +1108,9 @@
 					}),
 					text = $('<span class="pac-item-query"></span>');
 
-				text.text(item.label);
+				// The display text may be shortened; the full label still travels with the
+				// result, so what a pick saves is unchanged.
+				text.text(suggestionText(item.label, ownsRegion));
 				row.append(text);
 				row.data('index', index);
 
@@ -1158,8 +1233,11 @@
 					return;
 				}
 
+				// Places of interest are only hidden where the other suggestion restrictions
+				// apply: the main location field. A custom attribute named for a venue must still
+				// be able to accept one.
 				results = $.grep(items || [], function (item) {
-					return item.label && (anyKind || isAllowedKind(item.kind)) && isAllowedCountry(item.country);
+					return item.label && (anyKind || (isAllowedKind(item.kind) && (!data.hidePois || !item.poi))) && isAllowedCountry(item.country);
 				}).slice(0, 5);
 
 				if (!results.length) {

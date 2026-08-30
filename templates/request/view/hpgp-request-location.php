@@ -21,7 +21,7 @@ if ( $request->get_location() ) :
 
 	// The full address stays in the title attribute, so shortening what is displayed never
 	// hides information from somebody who wants it.
-	$hpgp_address = hivepress()->hpgp_geolocation ? hivepress()->hpgp_geolocation->format_address( $request->get_location() ) : $request->get_location();
+	$hpgp_address = hivepress()->hpgp_geolocation ? hivepress()->hpgp_geolocation->format_address( $request->get_location(), 'request' ) : $request->get_location();
 
 	$hpgp_url = hivepress()->router->get_url(
 		'location_view_page',
