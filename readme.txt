@@ -110,8 +110,9 @@ They are kept, so reinstalling restores everything. If you want them removed for
   Save button and the back-to-top button now look and sit exactly the same in every one of
   these extensions, so moving between two of their settings tabs no longer means hunting for
   the same control in a different place.
-* Changed - the settings screen's styles and script are no longer loaded on other plugins'
-  settings tabs, so those tabs carry a little less to download.
+* Changed - the settings screen's styles and script, and the colour picker used by the Marker
+  Colour box, are no longer loaded on other plugins' settings tabs, so those tabs carry a little
+  less to download.
 
 = 1.1.2 =
 * Changed - a code comment that described a different function had been left stranded above
@@ -140,6 +141,12 @@ They are kept, so reinstalling restores everything. If you want them removed for
 * Fixed - the "locate me" button now works on Mapbox. Its reverse lookup borrowed the forward
   search request, whose parameters Mapbox refuses when reverse geocoding, so the button silently
   did nothing. It also now reports plainly when a location cannot be found.
+* Fixed - the button no longer sits there apparently dead when the browser cannot supply a
+  position. It gives up after ten seconds and asks the visitor to type the address instead, and
+  says nothing extra when they simply declined the browser's own permission prompt, because the
+  browser has already told them.
+* Fixed - Suggestion Types now takes effect in full on Mapbox. Only the first five kinds of place
+  were sent, so a site allowing more than five had the rest quietly ignored.
 
 = 1.0.10 =
 * Fixed - region searching now works for a model switched on after the plugin was installed. The
