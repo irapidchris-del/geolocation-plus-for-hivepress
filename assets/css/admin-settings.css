@@ -303,13 +303,36 @@
 
 /*
  * Readable line lengths. Section descriptions render as full-width
- * paragraphs directly under each heading, and the field tooltips grow as
- * wide as their text; both wrap at a readable measure instead.
+ * paragraphs directly under each heading, so they wrap at a readable measure.
+ *
+ * The tooltip needs `width`, NOT `max-width`. Core sets a fixed
+ * `width: 173px` on `.hp-tooltip__text`
+ * (hivepress/assets/css/backend.min.css), so a larger `max-width` never
+ * applies and the bubble stays at core's 173px - which turns even a
+ * two-sentence description into a tall ribbon. The rule shipped in that inert
+ * form in six plugins until 2026-08-30 and looked correct in every review,
+ * because nothing errors and the CSS is present. 300px is the width the
+ * siblings that got it right already agree on.
  */
 .hp-page .hp-form--table > p {
 	max-width: 640px;
 }
 
 .hp-page .hp-form--table .hp-tooltip__text {
-	max-width: 320px;
+	width: 300px;
+	right: auto;
+	left: 26px;
+}
+
+/* Anchored to the RIGHT of the icon, with the arrow turned round.
+ * Core anchors it left (`right: 26px`) and sizes it to just clear the
+ * WordPress admin menu at its own 173px. Widening it therefore pushes it
+ * UNDER the menu: at 300px the left edge lands at 46px against a menu edge
+ * of 160px, so 114px of the bubble is hidden. Growing rightwards instead
+ * leaves 1000px+ of room on a settings screen. Measured 2026-08-30. */
+.hp-page .hp-form--table .hp-tooltip__text::after {
+	right: auto;
+	left: -8px;
+	border-left-color: transparent;
+	border-right-color: rgba(0, 0, 0, 0.75);
 }

@@ -96,7 +96,7 @@ Not in this version. MapLibre is worth explaining, because it is asked for often
 
 It would be a real improvement where it counts. Vector maps stay sharp at any zoom, and because the map style is a file you can edit rather than a picture, colours become genuinely customisable. MapTiler, Geoapify and LocationIQ all publish vector styles already, so their existing API keys would work unchanged, and it would open the door to OpenFreeMap, which serves vector maps with no account at all.
 
-The reason it is not here yet is weight. MapLibre is around six times the size of Leaflet, which every visitor to a page with a map would download, and it needs WebGL, so it fails outright on hardware that does not support it. That is a lot to spend before this plugin has real users telling us it is worth it. It is the first thing on the list for a future version, most likely as a choice rather than a replacement, so nobody pays for it unless they want it.
+The reason it is not here yet is weight. MapLibre is around six times the size of Leaflet, which every visitor to a page with a map would download, and it needs WebGL, so it fails outright on hardware that does not support it. That is a lot to spend before there is real demand for it. It is the first thing on the list for a future version, most likely as a choice rather than a replacement, so nobody pays for it unless they want it.
 
 = What happens to my settings if I delete the plugin? =
 
@@ -113,6 +113,8 @@ They are kept, so reinstalling restores everything. If you want them removed for
 * Changed - the settings screen's styles and script, and the colour picker used by the Marker
   Colour box, are no longer loaded on other plugins' settings tabs, so those tabs carry a little
   less to download.
+* Changed - the hover tooltips on the settings screen are wider, so a two-sentence explanation
+  reads as a few short lines rather than a tall narrow ribbon of text.
 
 = 1.1.2 =
 * Changed - a code comment that described a different function had been left stranded above
