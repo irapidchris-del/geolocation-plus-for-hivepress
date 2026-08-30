@@ -1298,9 +1298,14 @@ final class Hpgp_Geolocation extends Component {
 				'labels' => [
 					// The colon is part of the wording: it reads as a lead-in to the links that
 					// follow it, not as a heading over them.
-					'jumpTo'    => esc_html__( 'Jump to a section:', 'geolocation-plus-for-hivepress' ),
-					'save'      => esc_html__( 'Save Changes', 'geolocation-plus-for-hivepress' ),
-					'backToTop' => esc_html__( 'Back to top', 'geolocation-plus-for-hivepress' ),
+					'jumpTo'          => esc_html__( 'Jump to a section:', 'geolocation-plus-for-hivepress' ),
+					'save'            => esc_html__( 'Save Changes', 'geolocation-plus-for-hivepress' ),
+					'backToTop'       => esc_html__( 'Back to top', 'geolocation-plus-for-hivepress' ),
+
+					// The quick link for HivePress's own geolocation settings, which open
+					// this tab under no heading of their own, so there is no wording on the
+					// page to name the link after.
+					'defaultSettings' => esc_html__( 'Default Settings', 'geolocation-plus-for-hivepress' ),
 				],
 			]
 		);
