@@ -121,6 +121,16 @@ Maps
 	font: inherit;
 }
 
+/* Leaflet's zoom buttons are links (a.leaflet-control-zoom-in/out, role="button"), and HiveTheme
+   (all six official themes, vendor/hivepress/hivetheme/assets/css/frontend.min.css) ships a bare
+   a:hover{color:#1db1fc} at (0,1,1), which beats Leaflet's own .leaflet-bar a{color:black} at
+   (0,1,1) because the theme loads later, so the + and - turned blue on hover (measured 26 Sept
+   2026). Keep Leaflet's black; a disabled button keeps Leaflet's own grey. */
+.hp-map .leaflet-bar a:not(.leaflet-disabled):hover,
+.hp-map .leaflet-bar a:not(.leaflet-disabled):focus {
+	color: #000;
+}
+
 /* The pin is an inline SVG in a divIcon, which Leaflet gives no styling of its own. */
 .hpgp-marker svg {
 	display: block;

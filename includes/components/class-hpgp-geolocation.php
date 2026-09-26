@@ -1353,27 +1353,17 @@ final class Hpgp_Geolocation extends Component {
 	/**
 	 * Gives every region term that already existed a code this plugin can match.
 	 *
-	 * Region search matches by code alone, and each provider's codes are its own. Generation
-	 * adopts a term and adds our code as it goes, but only for regions a listing happens to be
-	 * saved into - so on a site with an established tree, searching for any region nobody has
-	 * re-saved silently falls through to a radius search. Measured on staging: picking "Scotland"
-	 * worked once a listing had been saved there, while "Wales", untouched, returned a 15-mile
-	 * radius around the Welsh centroid instead of the twelve listings on the region page.
+	 * Region search matches by code alone, and each provider's codes are its own. Generation adds our
+	 * code only to regions a listing is saved into, so on a site with an established tree a search for
+	 * any region nobody has re-saved falls through to a radius search.
 	 *
-	 * A term's type is read from a Mapbox-style code where there is one (`region.9295` carries it
-	 * in the prefix), and otherwise from its DEPTH against the site's own Region Types order -
-	 * which is exactly the order the tree was built in, so it is a reading rather than a guess.
+	 * A term's type is read from a Mapbox-style code where there is one (`region.9295` carries it in
+	 * the prefix), otherwise from its DEPTH against the site's Region Types order, which is the order
+	 * the tree was built in.
 	 *
-	 * Runs once per MODEL, not once per site. The loop below skips any model whose region taxonomy
-	 * does not exist yet - a model the owner has not switched on - and the completion flag used to
-	 * be written at the end regardless, so switching that model on afterwards left its region
-	 * terms permanently without codes and every search of one of them silently fell through to a
-	 * radius search. Nothing ever ran again to notice. Recording which models were actually
-	 * finished is what makes "once" mean once per thing done rather than once per attempt.
-	 *
-	 * The option used to hold a version string; anything that is not an array is read as "nothing
-	 * recorded" and the backfill runs again, which also repairs a site left half-done by the old
-	 * behaviour. That is safe because this only ever ADDS a meta row, never edits or removes one.
+	 * Runs once per MODEL, not once per site: a model switched on later must still get its codes, so
+	 * the option records which models are finished. A non-array value (the old version string) reads
+	 * as "nothing recorded" and the backfill runs again. Safe, because this only ever ADDS meta rows.
 	 */
 	public function backfill_region_codes() {
 		if ( ! get_option( 'hp_geolocation_generate_regions' ) ) {
@@ -1492,12 +1482,9 @@ final class Hpgp_Geolocation extends Component {
 	/**
 	 * Records why region generation last failed, so it is not a silent no-op.
 	 *
-	 * Region generation writes nothing when anything goes wrong - a missing key, a rate limit, a
-	 * geocoder that returns no recognisable levels - and until this existed the only symptom was
-	 * an empty Regions screen. Two separate staging sessions lost time to that, one of them
-	 * unable to tell a plugin fault from a site condition without deactivating the plugin to
-	 * compare. An owner has even less to go on, so the reason is kept and shown on the settings
-	 * screen. Cleared on the next success.
+	 * Region generation writes nothing when anything goes wrong (a missing key, a rate limit, a
+	 * geocoder with no recognisable levels), and the only symptom was an empty Regions screen. The
+	 * reason is kept and shown on the settings screen. Cleared on the next success.
 	 *
 	 * @param string $reason Plain-English reason, or an empty string on success.
 	 */
@@ -1553,9 +1540,7 @@ final class Hpgp_Geolocation extends Component {
 	 * slow save holds one PHP worker for that whole time, and shared hosting runs a handful of
 	 * workers: a few vendors saving listings while the geocoder has a slow day ties up the pool,
 	 * and every OTHER visitor's request then queues at the gateway until it gives up. That is how
-	 * a per-save delay presents as site-wide 504 errors on a busy site, which is exactly what a
-	 * real site with hundreds of daily visitors reported within a week of the first release
-	 * (2026-08-19).
+	 * a per-save delay presents as site-wide 504 errors on a busy site.
 	 *
 	 * So the save request now only records that the work is needed. Action Scheduler - bundled
 	 * with HivePress core and used the same way by the Bookings extension - runs the lookup in the
@@ -1639,13 +1624,10 @@ final class Hpgp_Geolocation extends Component {
 
 		// Walk the hierarchy, adopting or creating each level.
 		//
-		// Matching by NAME as well as by code is what makes this work on a real site. Any site
-		// that has run the Geolocation extension on Google Maps or Mapbox already has a region
-		// tree whose terms carry THEIR codes - "England" with `hp_code` of `region.9295`, for
-		// instance. A code-only lookup misses every one of those, and `wp_insert_term()` then
-		// refuses the name with a `term_exists` error, so the walk gave up and the listing was
-		// never filed under any region at all. Silent, and invisible on a fresh install where
-		// ours are the only terms there - which is exactly how it reached staging (2026-08-11).
+		// Matching by NAME as well as by code is what makes this work on a real site. A site that ran the
+		// Geolocation extension on Google Maps or Mapbox already has terms carrying THEIR codes ("England"
+		// with `hp_code` `region.9295`). A code-only lookup misses those, `wp_insert_term()` then refuses
+		// the name with `term_exists`, and the listing is never filed under any region.
 		$region_id = 0;
 
 		foreach ( $regions as $code => $name ) {
@@ -1995,10 +1977,9 @@ final class Hpgp_Geolocation extends Component {
 			$url,
 			[
 				// Per provider, because the free community services are slower than the paid ones
-				// and ten seconds is not enough for them. Measured on a live site: Photon answered
-				// a suggestion request in roughly fifteen seconds - HTTP 200, not a rate limit,
-				// just latency - while this lookup gave up at ten and the listing was saved with
-				// its coordinates but filed under no region at all (2026-08-12).
+				// and ten seconds is not enough for them: Photon can take roughly fifteen seconds to
+				// answer (HTTP 200, just latency), and a lookup that gave up at ten saved the listing
+				// with its coordinates but filed under no region at all.
 				//
 				// That failure is asymmetric and easy to miss, which is what makes it worth paying
 				// for: the address saves, the region silently does not, and the listing quietly
@@ -2045,10 +2026,8 @@ final class Hpgp_Geolocation extends Component {
 
 		if ( 200 !== $status ) {
 
-			// Quote the provider rather than guessing at the cause. An earlier version blamed the
-			// API key for every non-200, which was actively misleading when MapTiler returned 400
-			// for a malformed request and the key was perfectly good - it sent a staging session
-			// looking at the wrong thing. The body is where the answer actually is.
+			// Quote the provider rather than guessing at the cause. Blaming the API key for every non-200
+			// was misleading when MapTiler returned 400 for a malformed request with a good key.
 			$detail = trim( wp_strip_all_tags( (string) wp_remote_retrieve_body( $response ) ) );
 
 			if ( strlen( $detail ) > 200 ) {
@@ -2080,39 +2059,24 @@ final class Hpgp_Geolocation extends Component {
 	/**
 	 * Turns a MapTiler reverse response into region names.
 	 *
-	 * MapTiler is the only provider that answers with an ordered list of features rather than a
-	 * keyed address, and its ordering is not a ranking. Two rules, both measured rather than
-	 * assumed - the whole method is built on live reverse lookups at seven places on 2026-08-12,
-	 * because every attempt to reason about it from one example produced a rule that was wrong
-	 * somewhere else:
+	 * MapTiler answers with an ordered list of features rather than a keyed address, and its order
+	 * is not a ranking. Both rules below come from live reverse lookups at seven places:
 	 *
 	 *   place              Cardiff | Castle Road Allotments | St James Quarter | City Centre
 	 *   municipality       Castle  | Newport                | Old Town         | -
 	 *   joint_submunicip.  -       | -                      | -                | Manchester
 	 *   county             Cardiff | Isle of Wight          | City of Edinburgh| -
 	 *
-	 * Taking the response's own order gave "Castle" for Cardiff and "Butetown" for Bute Street:
-	 * civil parishes, not cities, each with its own archive page (reported from live staging).
-	 * Simply preferring `place` instead then gave **Castle Road Allotments** for Newport and
-	 * "City Centre" for Manchester, which is the same bug wearing a different hat - `place` is
-	 * MapTiler's LOCALITY level, not its city level, and what it holds depends on what happens to
-	 * be mapped nearby.
+	 * The response's own order gave civil parishes ("Castle" for Cardiff); preferring `place` gave
+	 * "Castle Road Allotments" for Newport, because `place` is MapTiler's LOCALITY level. So:
 	 *
-	 * So:
+	 * 1. A name repeated at another level of the same response is the significant one (Cardiff is
+	 *    both `place` and `county`).
+	 * 2. Otherwise the `kinds` order decides, settlement first: municipality,
+	 *    joint_submunicipality, place, which matches MapTiler's own `place_name`.
 	 *
-	 * 1. A name MapTiler repeats at another level of the same response is the significant one.
-	 *    Cardiff is both the `place` and the `county`; that repetition is the provider telling us
-	 *    this name matters, and it is what makes "Cardiff" win over "Castle" without hard-coding
-	 *    anything about Cardiff.
-	 * 2. Otherwise the declared order in the `kinds` table decides, and it now runs settlement
-	 *    first: municipality, joint_submunicipality, place. That is MapTiler's own preference -
-	 *    the name it puts in its formatted `place_name` is the municipality (Newport, Rhayader,
-	 *    Old Town) or the joint_submunicipality (Manchester), never the `place`.
-	 *
-	 * Scored against the seven measurements this gets six right. The one it does not is a
-	 * coordinate in the middle of a large city whose districts are named: Edinburgh city centre
-	 * files as "Old Town" under the district "City of Edinburgh". That is a coherent tree and a
-	 * documented limit, not a silent wrong answer - the readme says so.
+	 * Six of seven right. The exception, Edinburgh city centre filing as "Old Town" under "City of
+	 * Edinburgh", is a coherent tree and a documented limit in the readme.
 	 *
 	 * @param array $provider Provider arguments.
 	 * @param array $response Decoded response.
@@ -2182,32 +2146,20 @@ final class Hpgp_Geolocation extends Component {
 	/**
 	 * Uses the district name as the city where MapTiler says the district is also a city.
 	 *
-	 * The repetition rule above needs the city to appear at two levels, and a few hundred metres
-	 * decides whether it does. Picking the city "Cardiff" from the suggestion list gives a point
-	 * where `place` is "Cardiff" and `county` is "Cardiff", so it fires. A plain Cardiff street
-	 * address - St Mary Street, which is what somebody submitting a listing would actually enter -
-	 * gives `place` = "Cardiff City Centre", `municipality` = "Castle", `county` = "Cardiff". No
-	 * name is repeated, so the parish "Castle" won again (live staging, 2026-08-12). Nottingham is
-	 * the same shape: `place` = "Chapel Quarter", `county` = "Nottingham".
+	 * The repetition rule needs the city at two levels, and a few hundred metres decides it. A
+	 * Cardiff street address gives `place` "Cardiff City Centre", `municipality` "Castle", `county`
+	 * "Cardiff": nothing repeats, so the parish would win. Nottingham is the same shape.
 	 *
-	 * What Cardiff and Nottingham have in common is that the district IS the city - both are
-	 * unitary authorities - while the Isle of Wight, Powys and Greater Manchester are not, and
-	 * there is nothing in the reverse response that says which is which. Three string rules were
-	 * tried against the measurements and each fixed one town and broke another.
-	 *
-	 * So ask MapTiler, in its own vocabulary. A forward lookup restricted to city types answers
-	 * exactly this question, measured 2026-08-12:
+	 * Cardiff and Nottingham are unitary authorities (the district IS the city); the Isle of Wight,
+	 * Powys and Greater Manchester are not, and the reverse response cannot tell them apart. So ask
+	 * MapTiler: a forward lookup restricted to city types answers exactly this question.
 	 *
 	 *   Cardiff YES (place)      Isle of Wight no        Greater Manchester no
 	 *   Nottingham YES (place)   Powys no                City of Edinburgh no
 	 *   Bristol YES (place)      Perth and Kinross no    North East YES, but as a MUNICIPALITY
 	 *
-	 * Hence the `place` requirement rather than any city-ish match: without it "North East" would
-	 * override "Newcastle upon Tyne", which is precisely the mistake this is here to prevent.
-	 *
-	 * One request per distinct district name, cached for a month. Districts repeat across every
-	 * listing on a site, so in practice this is a handful of requests in the life of the site, and
-	 * a failed lookup changes nothing and is not cached.
+	 * Hence the `place` requirement: without it "North East" would override "Newcastle upon Tyne".
+	 * One request per distinct district name, cached for a month; a failed lookup is not cached.
 	 *
 	 * @param array  $provider Provider arguments.
 	 * @param array  $names    Region names keyed by our type.

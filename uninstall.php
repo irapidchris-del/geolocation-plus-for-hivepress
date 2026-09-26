@@ -109,6 +109,11 @@ function hpgp_uninstall_site() {
 		delete_option( $option_name );
 	}
 
+	// The Service Radius and travel fees each vendor entered (vendor post meta, 1.2.0 and 1.3.0).
+	delete_post_meta_by_key( 'hp_hpgp_service_radius' );
+	delete_post_meta_by_key( 'hp_hpgp_travel_fee' );
+	delete_post_meta_by_key( 'hp_hpgp_travel_fee_rate' );
+
 	delete_option( 'hp_geolocation_plus_delete_data' );
 }
 

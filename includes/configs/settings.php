@@ -215,6 +215,70 @@ return [
 				],
 			],
 
+			'hpgp_service'     => [
+				'title'       => esc_html__( 'Service Areas', 'geolocation-plus-for-hivepress' ),
+				'description' => esc_html__( 'For vendors who travel to their customers. A vendor sets how far they travel, and their listings then appear in location searches for anyone inside that distance, even when that is further than the searcher\'s own radius.', 'geolocation-plus-for-hivepress' ),
+				'_order'      => 45,
+
+				'fields'      => [
+					'geolocation_plus_service_area'        => [
+						'label'       => esc_html__( 'Service Areas', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Adds a Service Radius field to the vendor profile. Leaving it empty means customers come to the vendor, so nothing changes for vendors who do not travel.', 'geolocation-plus-for-hivepress' ),
+						'caption'     => esc_html__( 'Let vendors set how far they travel', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'checkbox',
+						'_order'      => 10,
+					],
+
+					'geolocation_plus_service_area_max'    => [
+						'label'       => get_option( 'hp_geolocation_use_miles' )
+							? esc_html__( 'Longest Service Radius (miles)', 'geolocation-plus-for-hivepress' )
+							: esc_html__( 'Longest Service Radius (km)', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'The most a vendor can enter. Uses the same unit as the search radius above.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'number',
+						'min_value'   => 1,
+						'max_value'   => 500,
+						'default'     => 50,
+						'_parent'     => 'geolocation_plus_service_area',
+						'_order'      => 20,
+					],
+
+					'geolocation_plus_service_area_option' => [
+						'label'       => esc_html__( 'Travelling Listings', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'Which of a travelling vendor\'s listings use their service area. Choose an attribute option if only some listings are carried out at the customer\'s address, for example a "Where" attribute with an "At your address" option.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'select',
+						'placeholder' => esc_html__( 'Every listing of a vendor who travels', 'geolocation-plus-for-hivepress' ),
+						'statuses'    => [ 'optional' => null ],
+						'_parent'     => 'geolocation_plus_service_area',
+						'_order'      => 30,
+						'options'     => [],
+					],
+
+					'geolocation_plus_service_area_address' => [
+						'label'       => esc_html__( 'Customer Address for Bookings', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'The booking field where customers enter the address the vendor travels to. Choosing one adds Travel Fee fields to the vendor profile, charges the fee at checkout and refuses addresses outside the vendor\'s service area. Only Location fields from this plugin appear here, because they store the map position the distance is measured from.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'select',
+						'placeholder' => esc_html__( 'None (no travel fees)', 'geolocation-plus-for-hivepress' ),
+						'statuses'    => [ 'optional' => null ],
+						'_parent'     => 'geolocation_plus_service_area',
+						'_order'      => 40,
+						'options'     => [],
+					],
+
+					'geolocation_plus_service_area_included' => [
+						'label'       => get_option( 'hp_geolocation_use_miles' )
+							? esc_html__( 'Distance Included in the Travel Fee (miles)', 'geolocation-plus-for-hivepress' )
+							: esc_html__( 'Distance Included in the Travel Fee (km)', 'geolocation-plus-for-hivepress' ),
+						'description' => esc_html__( 'The per-mile or per-km part of a vendor\'s travel fee starts after this distance, measured in a straight line from the listing. Leave it at 0 to charge from the first mile or km.', 'geolocation-plus-for-hivepress' ),
+						'type'        => 'number',
+						'min_value'   => 0,
+						'max_value'   => 100,
+						'default'     => 0,
+						'_parent'     => 'geolocation_plus_service_area',
+						'_order'      => 50,
+					],
+				],
+			],
+
 			'hpgp_data'        => [
 				'title'       => esc_html__( 'Removing the Plugin', 'geolocation-plus-for-hivepress' ),
 				'description' => esc_html__( 'What happens to these settings if you ever delete Geolocation Plus. They are kept by default, so reinstalling restores everything. Ignore the generic warning WordPress shows when deleting a plugin; the setting below is what counts.', 'geolocation-plus-for-hivepress' ),

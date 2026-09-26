@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.6
+Stable tag: 1.3.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,10 @@ Pick a provider and everything else follows: the map, the suggestion list, the "
 **Tidier addresses.** Choose what visitors see: the full address, the city only, the city and the country, everything except the country, and so on. Nothing is re-saved, so you can change your mind at any time and every existing listing follows immediately. There is also an option to shorten what gets saved as people pick a suggestion, if you would rather store the short version.
 
 **Restricted suggestions.** Decide which kinds of place people are allowed to choose: countries, regions, cities, districts, postcodes, street addresses, or any combination. This is the tidiest way to keep every saved location consistent, and it works on Google Maps and Mapbox too. It governs the location a listing is filed and searched by; the Location attributes you create keep offering everything, so an attribute named for an address can still accept one.
+
+**Service areas for vendors who travel.** Switch it on and vendors get a Service Radius field on their profile: how far they travel to their customers. Their listings then turn up in location searches for anyone inside that distance, even when the searcher's own radius would not reach them. You can limit it to listings carrying one attribute option, such as an "At your address" choice, set the longest radius a vendor may enter, and the profile shows "Travels up to 10 miles". Vendors who leave the field empty are searched exactly as before.
+
+**Travel fees for bookings.** With HivePress Bookings, choose the booking field where customers enter their address (a Location field from this plugin) and vendors get two more optional fields: a Travel Fee per booking and an Extra per Mile (or km) beyond a distance you set. The fee is added to the cart as its own line, such as "Travel fee (6.2 miles)", so it is paid with the booking, and an address outside the vendor's service area is refused with a clear message before the booking is made. Distances are measured in a straight line from the listing's location.
 
 **A map block.** A "Location Map" block for the WordPress editor, and a matching `[hivepress_hpgp_map]` shortcode. Show your listings, your vendors or a single place; set the height, the zoom level and the map style; filter to one category or to featured listings only. Markers are clustered automatically.
 
@@ -68,6 +72,8 @@ Nothing is sent anywhere until you choose a map provider that needs it, and then
 * Providers can name the same city differently, so switching provider on a site that already has region pages can create a second page for one city, such as "Edinburgh" alongside "City of Edinburgh". Nothing is lost, but you may want to merge them under Listings > Regions.
 * Google Maps and Mapbox identify a region by their own internal id rather than by its name. Region pages built under those two keep working exactly as before, and this plugin adds its own name-based identifier alongside rather than replacing it, so nothing has to be rebuilt when you switch.
 * Region pages are matched by place name, so two places that share a name and a type would share a page. On a single-country site that does not arise.
+* Service areas widen the ordinary location search. A region page search, which files listings by place name rather than by distance, is not widened.
+* The "Travels up to" line is shown wherever the theme shows vendor details. The RentalHive vendor page and the JobHive theme do not show those details, so there the line appears only in RentalHive's vendor box on listing pages, and not at all in JobHive. The search itself works the same in every theme.
 
 == Installation ==
 
@@ -103,6 +109,18 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.3.1 =
+* Fixed: on the map providers this plugin adds (OpenStreetMap, MapTiler, Geoapify and LocationIQ), the map's zoom in and zoom out buttons no longer turn blue on hover.
+
+= 1.3.0 =
+* New: travel fees. With HivePress Bookings, choose the booking field that holds the customer's address (a Location field from this plugin) under Geolocation, Service Areas, and Vendors can set a Travel Fee per Booking and an Extra per Mile (or km) beyond a distance set on the same tab. The fee is added to the cart as its own line and is paid with the Booking.
+* New: a Booking address outside the Vendor's service area is refused on the booking details step, saying how far the Vendor travels and how far away the address is.
+* New: Vendor profiles show "Travel fee from" the amount entered.
+
+= 1.2.0 =
+* New: service areas. Vendors who travel to their customers can enter a Service Radius on their profile, and their Listings then appear in location searches for anyone inside that distance, including featured Listings. Switch it on under Geolocation, Service Areas. Optionally limit it to Listings with one attribute option, and set the longest radius allowed.
+* New: Vendor profiles and Vendor cards show "Travels up to" the distance entered.
 
 = 1.1.6 =
 * Fixed: updating two of these extensions one after the other could fail on the second with "up to date" until Check for updates was pressed again. WordPress rebuilds its update list after each update by asking wordpress.org first, and gives up on the whole list when that call is slow; the plugin now keeps its own update in the list regardless.

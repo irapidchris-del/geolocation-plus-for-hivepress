@@ -154,24 +154,17 @@
 	/**
 	 * Drops the street part of a chosen place when exact addresses are meant to be hidden.
 	 *
-	 * "Hide the exact address" is not only about the map. The Geolocation extension also rewrites
-	 * what goes INTO the location box on Google Maps, keeping only the components it considers
-	 * coarse enough (`assets/js/common.js:108-119`), so the exact address is never stored at all.
-	 * Our providers had no equivalent, so switching to one of them silently started saving and
-	 * printing full street addresses on a site whose owner had asked for the opposite - with the
-	 * map beside it still drawing a privacy circle, so the setting looked like it was working.
+	 * "Hide the exact address" is not only about the map: the Geolocation extension also keeps only
+	 * coarse components in the location box on Google Maps (`assets/js/common.js`), so the exact
+	 * address is never stored. Without an equivalent here, our providers saved full street addresses
+	 * while the map still drew a privacy circle.
 	 *
-	 * Only street-level results are coarsened; a visitor who picked a city gets the city.
+	 * Only street-level results are coarsened; a visitor who picked a city gets the city. Two guards,
+	 * because this throws information away:
 	 *
-	 * Two guards, because this throws information away and a wrong guess is not recoverable:
-	 *
-	 * 1. An UNRECOGNISED kind is left alone. The first version treated "I cannot tell what this
-	 *    is" as "coarsen it", which is backwards for a destructive edit - and on a native provider
-	 *    kindMap is empty by design, so every kind is unrecognised. Picking the city "Newcastle
-	 *    upon Tyne, United Kingdom" saved "United Kingdom": on a UK site that quietly reduced
-	 *    every new listing to its country (found on staging, 2026-08-11).
-	 * 2. Never leave fewer than two parts. A country on its own is never a useful location, and
-	 *    no correct coarsening of a real address produces one.
+	 * 1. An UNRECOGNISED kind is left alone. On a native provider kindMap is empty by design, and
+	 *    coarsening unknown kinds reduced "Newcastle upon Tyne, United Kingdom" to "United Kingdom".
+	 * 2. Never leave fewer than two parts. A country on its own is never a useful location.
 	 *
 	 * Where a provider names the street outright it is used instead of counting parts, because
 	 * counting assumes the street comes first and on some results it does not.
@@ -199,41 +192,25 @@
 			drop = numbered ? 2 : 1;
 
 		// A point of interest is a NAME, and the leading part is that name rather than a street.
-		// Coarsening one is only right when there is a street in there to remove, and the provider
-		// says whether there is: "The Balmoral, 1 Princes Street, Edinburgh …" carries a street,
-		// "Hyde Park, London, ENG, United Kingdom" carries none and has no number either.
-		//
-		// Without this test the same rule that correctly strips a hotel's street address threw away
-		// "Hyde Park" and stored "London, ENG, United Kingdom" - a coarsening that removes the only
-		// part identifying the place, on a setting that is supposed to remove precision, not
-		// meaning (found on live staging, 2026-08-12).
-		//
-		// Street-classified results are exempt: for those the leading part IS the street, which is
-		// why "Princes Street, Edinburgh, Scotland, United Kingdom" still coarsens with no street
-		// field to help.
+		// Coarsen one only when the provider says it carries a street: "The Balmoral, 1 Princes Street,
+		// Edinburgh" does, "Hyde Park, London, ENG, United Kingdom" does not, and stripping "Hyde Park"
+		// would remove the only part identifying the place. Street-classified results are exempt: for
+		// those the leading part IS the street.
 		if (!result.street && !numbered && $.inArray(result.kind, ['poi', 'amenity', 'building']) !== -1) {
 			return result.label;
 		}
 
-		// Better than counting, when the provider names the street outright. Counting assumes the
-		// street is the first part, and it often is not: "Locate Me" on LocationIQ returned
-		// "East End, Waterloo Place, Waterloo Place, Broughton, City of Edinburgh, …", which leads
-		// with a place name and then repeats the street, so dropping one part left the street
-		// twice over (found on live staging, 2026-08-12).
-		//
-		// Only a run of parts STARTING at the street's first appearance is dropped. Taking the last
-		// appearance instead would over-reach whenever a suburb shares its name with the road it is
-		// named after, which in Britain is common.
+		// Better than counting when the provider names the street outright, because the street is often
+		// not the first part: LocationIQ can return "East End, Waterloo Place, Waterloo Place, ...",
+		// where dropping one part leaves the street twice. Only a run STARTING at the street's first
+		// appearance is dropped; the last appearance would over-reach when a suburb shares its name with
+		// its road.
 		if (result.street) {
 			var first = -1;
 
-			// Not an exact comparison, and the same test has to govern the RUN as well as its
-			// start. A POI result labels its street part with the number attached - Geoapify
-			// returns "East End, Waterloo Place, 6 Waterloo Place, Edinburgh, …" while naming the
-			// street "Waterloo Place" - so an equality test found nothing at all, and matching only
-			// the start of the run then stopped at the bare "Waterloo Place" and left
-			// "6 Waterloo Place" standing: the house number and street published by the very
-			// setting meant to hide them (both measured on live staging, 2026-08-12).
+			// Not an exact comparison, and the same test governs the RUN as well as its start: a POI result
+			// can label its street part with the number attached (Geoapify: "6 Waterloo Place" while naming
+			// the street "Waterloo Place"), and an exact test would leave the house number published.
 			$.each(parts, function (index, part) {
 				if (first === -1 && isStreetPart(part, result.street)) {
 					first = index;
@@ -489,8 +466,8 @@
 
 			// Photon is the one provider with no country parameter to send, so the Countries
 			// setting had no effect on it at all: a UK-only directory offered Ludlow in Illinois,
-			// Maine, Kentucky and Vermont above the Shropshire one (found on a live site,
-			// 2026-08-12). It does report the country per result, so the restriction is applied
+			// Maine, Kentucky and Vermont above the Shropshire one. It does report the country per
+			// result, so the restriction is applied
 			// here instead - the same browser-side fallback the suggestion types already use where
 			// a provider cannot be told.
 			country: props.countrycode || ''
@@ -516,23 +493,12 @@
 	/**
 	 * Reads what kind of place a LocationIQ result is.
 	 *
-	 * LocationIQ is the one provider that hands back raw OpenStreetMap tagging rather than a
-	 * vocabulary of its own, as a `class` and a `type`. Reading `type` alone was wrong for every
-	 * street: a road comes back as class "highway" with the type carrying the ROAD CLASSIFICATION -
-	 * primary, secondary, tertiary, trunk, motorway, residential, unclassified, service,
-	 * living_street, pedestrian, track, footway, path, cycleway - so the kind was "primary", which
-	 * matches nothing in any table.
-	 *
-	 * What that broke, quietly, in two different directions:
-	 *
-	 * - "Hide the exact address" left the street in. "Waterloo Place, Greenside, New Town/Broughton,
-	 *   Edinburgh, …" was stored exactly as offered, because coarsening only touches a result whose
-	 *   kind maps to `address` (found on live staging, 2026-08-12). The house-numbered form
-	 *   (class "place", type "house") was coarsened correctly, so the setting looked like it worked.
-	 * - A site restricting suggestions to Address got nothing, since no street could match.
-	 *
-	 * Collapsing the whole highway family to its class covers every road type at once, including
-	 * the ones OpenStreetMap has not invented yet, which enumerating them would not.
+	 * LocationIQ hands back raw OpenStreetMap tagging (`class` and `type`). Reading `type` alone was
+	 * wrong for every street: a road is class "highway" with the type carrying the road
+	 * classification (primary, residential, footway ...), which matches nothing in any table. So
+	 * "Hide the exact address" left streets in, and a site restricting suggestions to Address got
+	 * nothing. Collapsing the whole highway family to its class covers every road type at once,
+	 * including future ones.
 	 */
 	function locationiqKind(result) {
 		if (!result) {
@@ -1032,22 +998,12 @@
 			ownsRegion = 'hpgp-location' !== container.data('component'),
 			regionField = ownsRegion ? form.find('input[data-region]') : $(),
 
-			// Suggestion Types governs the location a listing is FILED and SEARCHED by, and stops
-			// there. Applied to a custom attribute as well it made a field the owner had named
-			// "Studio Address" unable to accept an address: with the setting on City, Google was
-			// asked for localities only and correctly returned nothing, so the box said "No
-			// matching places found" and there was no way to reach the answer (reported from live
-			// staging, 2026-08-12).
-			//
-			// The setting's own description promises to keep saved locations consistent, which is
-			// about the field people search by. An attribute is a second, separate place with its
-			// own purpose - a meeting point, a collection address, a studio - and the owner already
-			// chose that purpose when they named it. Restricting it was never advertised and is
-			// rarely what anybody wants.
-			//
-			// It exempts the REQUEST as well as the filtering. On several providers the restriction
-			// travels in the query itself, so filtering alone would still have asked the geocoder
-			// for cities and got cities back.
+			// Suggestion Types governs the location a listing is FILED and SEARCHED by, and stops there.
+			// Applied to a custom attribute it made a field such as "Meeting Address" unable to accept an
+			// address (City asks Google for localities only, so the box said "No matching places found").
+			// An attribute is a separate place with its own purpose, chosen by the owner when they named it.
+			// It exempts the REQUEST as well as the filtering, because on several providers the restriction
+			// travels in the query itself.
 			anyKind = !ownsRegion,
 			minLength = data.minLength,
 			results = [],
@@ -1152,22 +1108,11 @@
 			// Privacy first, then the owner's display format: a coarsened address still gets
 			// shortened if they asked for that, but a shortened one is never re-expanded.
 			//
-			// "Hide the exact address" applies to the listing's own location and not to the
-			// attributes an owner creates, for the same reason Suggestion Types does not: the field
-			// exists because they made it, named it, and chose to show it. Coarsening it undid the
-			// thing they had just been allowed to do - pick a street in a field called "Studio
-			// Address" and get "Marylebone, London" stored instead (reported from live staging,
-			// 2026-08-12).
-			//
-			// It also settles a disagreement between providers that nobody chose. The rule only
-			// ever fired on the providers this plugin adds: on Google and Mapbox `kindMap` is empty
-			// by design (class-hpgp-geolocation.php:440), so no result is ever classified as an
-			// address and the coarsening silently never ran. The same site behaved differently
-			// depending on which provider was selected. Whatever the right answer was, it could not
-			// be both.
-			//
-			// The listing's own location field is untouched: it still coarsens, which is the whole
-			// point of the setting and is what the map's privacy circle is drawn around.
+			// "Hide the exact address" applies to the listing's own location, not to attributes an owner
+			// creates, for the same reason Suggestion Types does not: coarsening a field the owner made for
+			// an address undoes it. It also removes a provider inconsistency: on Google and Mapbox `kindMap`
+			// is empty by design (class-hpgp-geolocation.php), so the rule never fired there. The listing's
+			// own location field still coarsens, which is what the map's privacy circle is drawn around.
 			var label = ownsRegion ? privacyLabel(result) : result.label;
 
 			field.val(data.formatInput ? formatAddress(label) : label);
@@ -1250,13 +1195,9 @@
 				highlight(-1);
 			}, function (xhr) {
 
-				// A 404 is how LocationIQ says "nothing matched", not "I am broken". Measured on
-				// two separate queries: a plain unmatchable term answers
-				// 404 {"error":"Unable to geocode"} while every query with results answers 200
-				// (live staging, 2026-08-12). Reported as a failure it told visitors "Location
-				// search is unavailable, please type the address instead" whenever they mistyped a
-				// place name, which is both wrong and the kind of message that generates support
-				// mail. Nominatim-shaped services all behave this way.
+				// A 404 is how LocationIQ says "nothing matched" (404 {"error":"Unable to geocode"}), not "I am
+				// broken". Treating it as a failure told visitors location search was unavailable whenever they
+				// mistyped a place name. Nominatim-shaped services all behave this way.
 				if (id !== requestId) {
 					return;
 				}
@@ -1409,23 +1350,11 @@
 				navigator.geolocation.getCurrentPosition(function (position) {
 					geocoder.reverse(position.coords.latitude, position.coords.longitude).then(function (result) {
 
-						// Deliberately NOT filtered by Suggestion Types, after trying it the other
-						// way for one release.
-						//
-						// The reasoning for filtering was that reverse geocoding returns the
-						// building the visitor is standing on, so on a City-restricted site
-						// "Locate Me" wrote a street address the drop-down would have refused.
-						// True, and much less important than what it cost: there is nothing to
-						// fall back to here, so the button simply did nothing. No text, no error,
-						// no movement - on a setting the plugin's own description recommends
-						// (reported from live staging, 2026-08-12, reproduced A/B/A).
-						//
-						// A dead control is worse than a precise answer. The restriction exists to
-						// keep a LIST of choices consistent; this is not a list, it is where the
-						// visitor actually is, and there is no second-best place to offer them.
-						// Precision is separately handled by "Hide the exact address", which still
-						// applies to this result and is the setting that owners reach for when
-						// they mean privacy.
+						// Deliberately NOT filtered by Suggestion Types. Reverse geocoding returns the building the
+						// visitor is standing on, so filtering on a City-restricted site left "Locate Me" doing nothing
+						// at all, with no fallback and no error. A dead control is worse than a precise answer: the
+						// restriction keeps a LIST of choices consistent, and this is not a list. Privacy is handled by
+						// "Hide the exact address", which still applies to this result.
 						if (result) {
 							apply(result);
 

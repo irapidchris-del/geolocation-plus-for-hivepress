@@ -2,21 +2,21 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Geolocation Plus for HivePress 1.1.4\n"
+"Project-Id-Version: Geolocation Plus for HivePress 1.3.0\n"
 "Report-Msgid-Bugs-To: https://github.com/irapidchris-del/geolocation-plus-for-hivepress/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-08-30T20:19:55+00:00\n"
+"POT-Creation-Date: 2026-09-24T12:16:01+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: geolocation-plus-for-hivepress\n"
 
 #. Description of the plugin
 #: geolocation-plus-for-hivepress.php
-msgid "Extends the HivePress Geolocation extension with free map providers, custom location attributes, tidier address display, restricted location suggestions and a customisable map block."
+msgid "Extends the HivePress Geolocation extension with free map providers, custom location attributes, tidier address display, restricted location suggestions, service areas for vendors who travel and a customisable map block."
 msgstr ""
 
 #: geolocation-plus-for-hivepress.php:129
@@ -234,6 +234,101 @@ msgstr ""
 #: includes/components/class-hpgp-geolocation.php:2431
 #, php-format
 msgid "%s is selected as the map provider but no API key has been saved for it yet, so maps and location suggestions will not work. Add the key in the Integrations section."
+msgstr ""
+
+#. translators: %s: a distance.
+#. translators: %s: number.
+#: includes/components/class-hpgp-service-area.php:269
+#: includes/components/class-hpgp-service-area.php:470
+#, php-format
+msgid "%s miles"
+msgstr ""
+
+#. translators: %s: a distance.
+#. translators: %s: number.
+#: includes/components/class-hpgp-service-area.php:269
+#: includes/components/class-hpgp-service-area.php:470
+#, php-format
+msgid "%s km"
+msgstr ""
+
+#. translators: 1: the service radius, such as "10.0 miles"; 2: the distance to the address.
+#: includes/components/class-hpgp-service-area.php:306
+#, php-format
+msgid "This Vendor travels up to %1$s, and this address is about %2$s away. Please choose an address closer by."
+msgstr ""
+
+#. translators: %s: a distance such as "6.2 miles".
+#: includes/components/class-hpgp-service-area.php:356
+#, php-format
+msgid "Travel fee (%s)"
+msgstr ""
+
+#. translators: %s: distance.
+#: includes/components/class-hpgp-service-area.php:410
+#, php-format
+msgid "Travels up to %s miles"
+msgstr ""
+
+#. translators: %s: distance.
+#: includes/components/class-hpgp-service-area.php:412
+#, php-format
+msgid "Travels up to %s km"
+msgstr ""
+
+#: includes/components/class-hpgp-service-area.php:421
+msgid "Service Radius (miles)"
+msgstr ""
+
+#: includes/components/class-hpgp-service-area.php:422
+msgid "Service Radius (km)"
+msgstr ""
+
+#: includes/components/class-hpgp-service-area.php:423
+msgid "How far you travel to customers. Customers inside this distance will find your listings when they search by location. Leave it empty if customers come to you."
+msgstr ""
+
+#. translators: %s: an amount of money.
+#: includes/components/class-hpgp-service-area.php:438
+#, php-format
+msgid "Travel fee from %s"
+msgstr ""
+
+#. translators: %s: currency symbol.
+#: includes/components/class-hpgp-service-area.php:446
+#, php-format
+msgid "Travel Fee (%s)"
+msgstr ""
+
+#. translators: %s: currency symbol.
+#: includes/components/class-hpgp-service-area.php:446
+msgid "Travel Fee"
+msgstr ""
+
+#: includes/components/class-hpgp-service-area.php:447
+msgid "Added to every booking at a customer's address. Leave it empty to travel for free."
+msgstr ""
+
+#. translators: %s: currency symbol.
+#: includes/components/class-hpgp-service-area.php:463
+#, php-format
+msgid "Extra per Mile (%s)"
+msgstr ""
+
+#. translators: %s: currency symbol.
+#: includes/components/class-hpgp-service-area.php:465
+#, php-format
+msgid "Extra per km (%s)"
+msgstr ""
+
+#. translators: %s: a distance such as "5 miles".
+#: includes/components/class-hpgp-service-area.php:469
+#, php-format
+msgid "Optional. Added for every mile or km beyond the first %s, measured in a straight line from your listing."
+msgstr ""
+
+#: includes/components/class-hpgp-service-area.php:472
+msgid "Optional. Added for every mile or km to the customer, measured in a straight line from your listing."
 msgstr ""
 
 #: includes/configs/hpgp-map-providers.php:65
@@ -503,34 +598,99 @@ msgid "The colour of the pins on the map, as a six digit hex code such as #ff5a5
 msgstr ""
 
 #: includes/configs/settings.php:219
-msgid "Removing the Plugin"
+#: includes/configs/settings.php:225
+msgid "Service Areas"
 msgstr ""
 
 #: includes/configs/settings.php:220
-msgid "What happens to these settings if you ever delete Geolocation Plus. They are kept by default, so reinstalling restores everything. Ignore the generic warning WordPress shows when deleting a plugin; the setting below is what counts."
-msgstr ""
-
-#: includes/configs/settings.php:225
-msgid "Deleting the Plugin"
+msgid "For vendors who travel to their customers. A vendor sets how far they travel, and their listings then appear in location searches for anyone inside that distance, even when that is further than the searcher's own radius."
 msgstr ""
 
 #: includes/configs/settings.php:226
-msgid "Tick this only if you want everything removed for good, which cannot be undone. It removes every setting on this page and the API keys in the Integrations section."
+msgid "Adds a Service Radius field to the vendor profile. Leaving it empty means customers come to the vendor, so nothing changes for vendors who do not travel."
 msgstr ""
 
 #: includes/configs/settings.php:227
-msgid "Delete all data when this plugin is deleted"
+msgid "Let vendors set how far they travel"
 msgstr ""
 
-#: includes/configs/settings.php:241
-msgid "Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com and copy the key from the Keys page. Restrict the key to your own domain first: it is readable by anyone who views the page. Widest choice of map styles. In the United Kingdom a listing in a large city can be filed under a named district of it, such as Old Town in Edinburgh."
+#: includes/configs/settings.php:234
+msgid "Longest Service Radius (miles)"
 msgstr ""
 
-#: includes/configs/settings.php:256
-msgid "Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project and copy the API key. Restrict the key to your own domain first: it is readable by anyone who views the page. Names places consistently, though it abbreviates some labels, such as England to \"ENG\"."
+#: includes/configs/settings.php:235
+msgid "Longest Service Radius (km)"
+msgstr ""
+
+#: includes/configs/settings.php:236
+msgid "The most a vendor can enter. Uses the same unit as the search radius above."
+msgstr ""
+
+#: includes/configs/settings.php:246
+msgid "Travelling Listings"
+msgstr ""
+
+#: includes/configs/settings.php:247
+msgid "Which of a travelling vendor's listings use their service area. Choose an attribute option if only some listings are carried out at the customer's address, for example a \"Where\" attribute with an \"At your address\" option."
+msgstr ""
+
+#: includes/configs/settings.php:249
+msgid "Every listing of a vendor who travels"
+msgstr ""
+
+#: includes/configs/settings.php:257
+msgid "Customer Address for Bookings"
+msgstr ""
+
+#: includes/configs/settings.php:258
+msgid "The booking field where customers enter the address the vendor travels to. Choosing one adds Travel Fee fields to the vendor profile, charges the fee at checkout and refuses addresses outside the vendor's service area. Only Location fields from this plugin appear here, because they store the map position the distance is measured from."
+msgstr ""
+
+#: includes/configs/settings.php:260
+msgid "None (no travel fees)"
+msgstr ""
+
+#: includes/configs/settings.php:269
+msgid "Distance Included in the Travel Fee (miles)"
+msgstr ""
+
+#: includes/configs/settings.php:270
+msgid "Distance Included in the Travel Fee (km)"
 msgstr ""
 
 #: includes/configs/settings.php:271
+msgid "The per-mile or per-km part of a vendor's travel fee starts after this distance, measured in a straight line from the listing. Leave it at 0 to charge from the first mile or km."
+msgstr ""
+
+#: includes/configs/settings.php:283
+msgid "Removing the Plugin"
+msgstr ""
+
+#: includes/configs/settings.php:284
+msgid "What happens to these settings if you ever delete Geolocation Plus. They are kept by default, so reinstalling restores everything. Ignore the generic warning WordPress shows when deleting a plugin; the setting below is what counts."
+msgstr ""
+
+#: includes/configs/settings.php:289
+msgid "Deleting the Plugin"
+msgstr ""
+
+#: includes/configs/settings.php:290
+msgid "Tick this only if you want everything removed for good, which cannot be undone. It removes every setting on this page and the API keys in the Integrations section."
+msgstr ""
+
+#: includes/configs/settings.php:291
+msgid "Delete all data when this plugin is deleted"
+msgstr ""
+
+#: includes/configs/settings.php:305
+msgid "Only used when MapTiler is selected as the map provider. Create a free account at maptiler.com and copy the key from the Keys page. Restrict the key to your own domain first: it is readable by anyone who views the page. Widest choice of map styles. In the United Kingdom a listing in a large city can be filed under a named district of it, such as Old Town in Edinburgh."
+msgstr ""
+
+#: includes/configs/settings.php:320
+msgid "Only used when Geoapify is selected as the map provider. Create a free account at geoapify.com, add a project and copy the API key. Restrict the key to your own domain first: it is readable by anyone who views the page. Names places consistently, though it abbreviates some labels, such as England to \"ENG\"."
+msgstr ""
+
+#: includes/configs/settings.php:335
 msgid "Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com and copy the access token from the Dashboard. Restrict the key to your own domain first: it is readable by anyone who views the page. The most detailed addresses of the three; the free plan allows about one search a second. It sometimes names a city by its council area, such as \"Aberdeen City\"."
 msgstr ""
 
@@ -542,36 +702,53 @@ msgstr ""
 msgid "Locate Me"
 msgstr ""
 
-#: updater.php:615
+#: updater.php:629
 msgid "See the GitHub releases page for the changelog."
 msgstr ""
 
-#: updater.php:630
+#: updater.php:644
+#: updater.php:853
 msgid "Check for updates"
 msgstr ""
 
 #. translators: %s: new version number.
-#: updater.php:704
+#: updater.php:718
 #, php-format
 msgid "A new version of Geolocation Plus for HivePress (%s) is available."
 msgstr ""
 
-#: updater.php:707
+#: updater.php:721
 msgid "Geolocation Plus for HivePress is up to date."
 msgstr ""
 
-#: updater.php:710
+#: updater.php:724
 msgid "No releases have been published for Geolocation Plus for HivePress yet, so there is nothing to update to. This is normal for a brand new copy and does not mean anything is wrong."
 msgstr ""
 
-#: updater.php:713
+#: updater.php:727
 msgid "GitHub limits how many update checks one server may make each hour, and this server has reached that limit. Nothing is wrong with the plugin or your site, and checking will work again within the hour."
 msgstr ""
 
-#: updater.php:716
+#: updater.php:730
 msgid "Could not reach GitHub to check for updates. Please try again later."
 msgstr ""
 
-#: updater.php:761
+#: updater.php:775
 msgid "Could not rename the update directory."
 msgstr ""
+
+#. translators: 1: number of plugins checked, 2: number with an update available.
+#: updater.php:930
+#, php-format
+msgid "Checked %1$s plugin for updates: %2$s can be updated."
+msgid_plural "Checked %1$s plugins for updates: %2$s can be updated."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of plugins checked.
+#: updater.php:933
+#, php-format
+msgid "Checked %s plugin for updates: it is up to date."
+msgid_plural "Checked %s plugins for updates: all are up to date."
+msgstr[0] ""
+msgstr[1] ""
