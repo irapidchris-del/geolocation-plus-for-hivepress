@@ -2,14 +2,14 @@
 # This file is distributed under the GPL-2.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Geolocation Plus for HivePress 1.3.0\n"
+"Project-Id-Version: Geolocation Plus for HivePress 1.4.0\n"
 "Report-Msgid-Bugs-To: https://github.com/irapidchris-del/geolocation-plus-for-hivepress/issues\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-24T12:16:01+00:00\n"
+"POT-Creation-Date: 2026-09-28T13:40:35+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: geolocation-plus-for-hivepress\n"
@@ -147,91 +147,101 @@ msgstr ""
 msgid "The map itself is drawn on the published page."
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:576
+#: includes/components/class-hpgp-geolocation.php:606
 msgid "Searching…"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:577
+#: includes/components/class-hpgp-geolocation.php:607
 msgid "No matching places found"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:578
+#: includes/components/class-hpgp-geolocation.php:608
 msgid "Location search is unavailable, please type the address instead"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:906
-#: includes/components/class-hpgp-geolocation.php:907
+#: includes/components/class-hpgp-geolocation.php:969
+#: includes/components/class-hpgp-geolocation.php:970
 msgid "Hide the location field"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1148
-msgid "OpenStreetMap needs no account, but it is a free community service, so move to MapTiler, Geoapify or LocationIQ once you have real traffic. Those three need a free API key, entered in the Integrations section. Providers name places slightly differently, so switching on a site with region pages can create duplicates. Suggestions come back in English, German or French only."
+#: includes/components/class-hpgp-geolocation.php:1211
+msgid "OpenStreetMap needs no account, but it is a free community service, so move to MapTiler, Geoapify, LocationIQ or HERE once you have real traffic. Those four need an API key, entered in the Integrations section. Providers name places slightly differently, so switching on a site with region pages can create duplicates. OpenStreetMap suggestions come back in English, German or French only."
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1301
+#: includes/components/class-hpgp-geolocation.php:1364
 msgid "Jump to a section:"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1302
+#: includes/components/class-hpgp-geolocation.php:1365
 msgid "Save Changes"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1303
+#: includes/components/class-hpgp-geolocation.php:1366
 msgid "Back to top"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1308
+#: includes/components/class-hpgp-geolocation.php:1371
 msgid "Default Settings"
 msgstr ""
 
 #. translators: %s: reason region generation failed.
-#: includes/components/class-hpgp-geolocation.php:1540
+#: includes/components/class-hpgp-geolocation.php:1590
 #, php-format
 msgid "Regions are not being created from locations. The last attempt failed because %s. Until this is resolved, listings are saved with their coordinates but are not filed under a region."
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1635
+#: includes/components/class-hpgp-geolocation.php:1683
 msgid "the region taxonomy is not registered on this site"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1662
+#: includes/components/class-hpgp-geolocation.php:1707
 msgid "the region could not be created in WordPress"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:1799
+#: includes/components/class-hpgp-geolocation.php:1844
 msgid "no region types are ticked in the Geolocation settings"
 msgstr ""
 
 #. translators: %s: map provider name.
-#: includes/components/class-hpgp-geolocation.php:1828
+#: includes/components/class-hpgp-geolocation.php:1873
 #, php-format
 msgid "%s did not return any of the region types you have ticked for this location"
 msgstr ""
 
 #. translators: %s: map provider name.
-#: includes/components/class-hpgp-geolocation.php:1930
+#: includes/components/class-hpgp-geolocation.php:1975
 #, php-format
 msgid "no API key is saved for %s"
 msgstr ""
 
 #. translators: 1: map provider name, 2: error message.
-#: includes/components/class-hpgp-geolocation.php:2035
+#: includes/components/class-hpgp-geolocation.php:2092
 #, php-format
 msgid "this site could not reach %1$s (%2$s)"
 msgstr ""
 
 #. translators: 1: map provider name, 2: HTTP status code, 3: response body.
-#: includes/components/class-hpgp-geolocation.php:2061
+#: includes/components/class-hpgp-geolocation.php:2116
 #, php-format
 msgid "%1$s answered with HTTP %2$d. It said: %3$s"
 msgstr ""
 
-#: includes/components/class-hpgp-geolocation.php:2064
+#: includes/components/class-hpgp-geolocation.php:2119
 msgid "(nothing)"
 msgstr ""
 
+#. translators: 1: map provider name, 2: HTTP status code, 3: the provider's explanation.
+#: includes/components/class-hpgp-geolocation.php:2626
+#, php-format
+msgid "%1$s refused the saved API key (HTTP %2$d: %3$s), so its maps and location suggestions will not work. Check the key was copied in full and, if you limited it to trusted domains, that this site is one of them. Saving the key again checks it again."
+msgstr ""
+
+#: includes/components/class-hpgp-geolocation.php:2629
+msgid "no reason given"
+msgstr ""
+
 #. translators: %s: map provider name.
-#: includes/components/class-hpgp-geolocation.php:2431
+#: includes/components/class-hpgp-geolocation.php:2663
 #, php-format
 msgid "%s is selected as the map provider but no API key has been saved for it yet, so maps and location suggestions will not work. Add the key in the Integrations section."
 msgstr ""
@@ -333,6 +343,7 @@ msgstr ""
 
 #: includes/configs/hpgp-map-providers.php:65
 #: includes/configs/hpgp-map-providers.php:227
+#: includes/configs/hpgp-map-providers.php:379
 msgid "Standard"
 msgstr ""
 
@@ -358,12 +369,14 @@ msgstr ""
 #: includes/configs/hpgp-map-providers.php:143
 #: includes/configs/hpgp-map-providers.php:237
 #: includes/configs/hpgp-map-providers.php:296
+#: includes/configs/hpgp-map-providers.php:385
 msgid "Light"
 msgstr ""
 
 #: includes/configs/hpgp-map-providers.php:148
 #: includes/configs/hpgp-map-providers.php:242
 #: includes/configs/hpgp-map-providers.php:301
+#: includes/configs/hpgp-map-providers.php:391
 msgid "Dark"
 msgstr ""
 
@@ -372,11 +385,20 @@ msgid "Outdoor"
 msgstr ""
 
 #: includes/configs/hpgp-map-providers.php:158
+#: includes/configs/hpgp-map-providers.php:409
 msgid "Satellite"
 msgstr ""
 
 #: includes/configs/hpgp-map-providers.php:232
 msgid "Grey"
+msgstr ""
+
+#: includes/configs/hpgp-map-providers.php:397
+msgid "Terrain"
+msgstr ""
+
+#: includes/configs/hpgp-map-providers.php:403
+msgid "Satellite with labels"
 msgstr ""
 
 #: includes/configs/settings.php:37
@@ -692,6 +714,10 @@ msgstr ""
 
 #: includes/configs/settings.php:335
 msgid "Only used when LocationIQ is selected as the map provider. Create a free account at locationiq.com and copy the access token from the Dashboard. Restrict the key to your own domain first: it is readable by anyone who views the page. The most detailed addresses of the three; the free plan allows about one search a second. It sometimes names a city by its council area, such as \"Aberdeen City\"."
+msgstr ""
+
+#: includes/configs/settings.php:350
+msgid "Only used when HERE is selected as the map provider. Sign up for the free Base plan at platform.here.com, open Access Manager, register an app, then create an API key on its Credentials tab. Add your domain under the key's trusted domains first: it is readable by anyone who views the page. One key covers the map, suggestions and region lookups, and the free plan includes a monthly allowance of each."
 msgstr ""
 
 #: includes/fields/class-hpgp-location.php:48

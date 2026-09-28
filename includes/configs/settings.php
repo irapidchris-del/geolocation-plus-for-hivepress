@@ -344,6 +344,21 @@ return [
 					],
 				],
 			],
+
+			'hpgp_here'       => [
+				'title'       => 'HERE',
+				'description' => esc_html__( 'Only used when HERE is selected as the map provider. Sign up for the free Base plan at platform.here.com, open Access Manager, register an app, then create an API key on its Credentials tab. Add your domain under the key\'s trusted domains first: it is readable by anyone who views the page. One key covers the map, suggestions and region lookups, and the free plan includes a monthly allowance of each.', 'geolocation-plus-for-hivepress' ),
+				'_order'      => 80,
+
+				'fields'      => [
+					'geolocation_plus_here_key' => [
+						'label'      => hivepress()->translator->get_string( 'api_key' ),
+						'type'       => 'text',
+						'max_length' => 256,
+						'_order'     => 10,
+					],
+				],
+			],
 		],
 	],
 ];

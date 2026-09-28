@@ -4,7 +4,7 @@ Tags: hivepress, geolocation, map, openstreetmap, leaflet
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3.1
+Stable tag: 1.4.0
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,10 +14,11 @@ Adds free map providers, custom location attributes, tidier addresses, restricte
 
 The HivePress Geolocation extension gives you Google Maps or Mapbox, one location field per listing, and a map in the sidebar. This plugin adds the things people keep asking for on top of it, without changing a single file of the extension itself.
 
-**Free map providers.** Four more choices in the Map Provider drop-down, all drawn with Leaflet, which is bundled with the plugin rather than loaded from anybody else's server:
+**Free map providers.** Five more choices in the Map Provider drop-down, all drawn with Leaflet, which is bundled with the plugin rather than loaded from anybody else's server:
 
 * **OpenStreetMap** needs no account at all. Maps come from OpenStreetMap and address suggestions from Photon, which indexes the same data for type-ahead search.
 * **MapTiler**, **Geoapify** and **LocationIQ** each have a generous free tier and need a free API key, entered in the Integrations section.
+* **HERE** needs an API key from the free Base plan on the HERE platform. One key covers the map, the address suggestions and the region lookups, and its map styles include satellite imagery.
 
 Pick a provider and everything else follows: the map, the suggestion list, the "locate me" button, the region pages, and the link on a listing's address, which opens OpenStreetMap rather than Google Maps. Google Maps and Mapbox carry on working exactly as before if you would rather keep them.
 
@@ -56,7 +57,7 @@ HivePress and the HivePress Geolocation extension, both active. The plugin says 
 
 = Privacy =
 
-Nothing is sent anywhere until you choose a map provider that needs it, and then only the address being searched or the coordinates being looked up. No site or visitor data is collected by this plugin, and no analytics of any kind are included. The API keys for MapTiler, Geoapify and LocationIQ are used in the visitor's browser, as those services intend, so restrict them to your domain in the provider's own dashboard.
+Nothing is sent anywhere until you choose a map provider that needs it, and then only the address being searched or the coordinates being looked up. No site or visitor data is collected by this plugin, and no analytics of any kind are included. The API keys for MapTiler, Geoapify, LocationIQ and HERE are used in the visitor's browser, as those services intend, so restrict them to your domain in the provider's own dashboard.
 
 = Known limits =
 
@@ -72,6 +73,7 @@ Nothing is sent anywhere until you choose a map provider that needs it, and then
 * Providers can name the same city differently, so switching provider on a site that already has region pages can create a second page for one city, such as "Edinburgh" alongside "City of Edinburgh". Nothing is lost, but you may want to merge them under Listings > Regions.
 * Google Maps and Mapbox identify a region by their own internal id rather than by its name. Region pages built under those two keep working exactly as before, and this plugin adds its own name-based identifier alongside rather than replacing it, so nothing has to be rebuilt when you switch.
 * Region pages are matched by place name, so two places that share a name and a type would share a page. On a single-country site that does not arise.
+* HERE suggestions cover addresses, streets, postcodes and places, but not businesses or landmarks, so a venue is found by its address. Picking a suggestion makes one more small request to fetch its position, and every map tile, suggestion list and lookup counts towards HERE's monthly allowance, which you can watch in the HERE platform.
 * Service areas widen the ordinary location search. A region page search, which files listings by place name rather than by distance, is not widened.
 * The "Travels up to" line is shown wherever the theme shows vendor details. The RentalHive vendor page and the JobHive theme do not show those details, so there the line appears only in RentalHive's vendor box on listing pages, and not at all in JobHive. The search itself works the same in every theme.
 
@@ -94,7 +96,7 @@ No. The full address stays in the database and is still shown when you hover the
 
 = Is OpenStreetMap suitable for a busy site? =
 
-Its maps and its search are free community services that ask people not to lean on them. They are perfect for getting started and for smaller sites. Once you have real traffic, move to MapTiler, Geoapify or LocationIQ, which are free at the volumes most sites need and are built for it.
+Its maps and its search are free community services that ask people not to lean on them. They are perfect for getting started and for smaller sites. Once you have real traffic, move to MapTiler, Geoapify, LocationIQ or HERE, which are free at the volumes most sites need and are built for it.
 
 = Can I use MapLibre, or vector maps? =
 
@@ -109,6 +111,11 @@ The reason it is not here yet is weight. MapLibre is around six times the size o
 They are kept, so reinstalling restores everything. If you want them removed for good, tick "Delete all data when this plugin is deleted" in the Removing the Plugin section of HivePress > Settings > Geolocation first. WordPress will warn you that deleting a plugin also deletes its data whichever way that box is set; ignore that wording and trust the setting.
 
 == Changelog ==
+
+= 1.4.0 =
+* New: HERE as a map provider. Maps, address suggestions, the "locate me" button and region pages all use it, with six map styles including satellite. Choose it under Geolocation, then add the API key under Integrations, HERE.
+* New: when a HERE API key is saved, it is checked with HERE straight away, and a key HERE refuses is reported on the settings screen with HERE's reason.
+* Fixed: on Google Maps sites, picking a suggestion in a Location field you created whose position Google could not return now says location search is unavailable, instead of leaving the list open with nothing happening.
 
 = 1.3.1 =
 * Fixed: on the map providers this plugin adds (OpenStreetMap, MapTiler, Geoapify and LocationIQ), the map's zoom in and zoom out buttons no longer turn blue on hover.

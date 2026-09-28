@@ -329,4 +329,110 @@ return [
 			'address'  => [ 'highway', 'poi', 'road', 'house_number', 'house', 'building', 'residential', 'amenity' ],
 		],
 	],
+
+	// HERE: Raster Tile API v3 for the map, Geocoding and Search API v7 for everything else. One
+	// API key covers all of it (https://docs.here.com/map-rendering/, /geocoding-and-search/).
+	'here'       => [
+		'label'          => 'HERE',
+		'key_option'     => 'geolocation_plus_here_key',
+
+		// No key means no map at all rather than a grid of refused tiles: every tile request
+		// without one is a 401, which fills the console and shows a grey box.
+		'key_required'   => true,
+
+		// One reverse lookup, sent when the owner saves a new key, to report a refused key on the
+		// settings screen. HERE answers 401 for an unknown key.
+		'key_check'      => 'https://revgeocode.search.hereapi.com/v1/revgeocode?at=51.5007,-0.1246&limit=1&apiKey={key}',
+
+		// Autocomplete, not Autosuggest. Autosuggest needs a search centre (`at` or `in=circle`)
+		// that a site-wide location box does not have, and it mixes businesses into the list.
+		// Autocomplete returns addresses and administrative places only, but WITHOUT coordinates,
+		// so a picked suggestion is resolved through Lookup by its id, the same two-step shape as
+		// the Google path in common.js.
+		'geocoder'       => 'here',
+		'search_url'     => 'https://autocomplete.search.hereapi.com/v1/autocomplete',
+		'lookup_url'     => 'https://lookup.search.hereapi.com/v1/lookup',
+		'reverse_url'    => 'https://revgeocode.search.hereapi.com/v1/revgeocode',
+		'limit'          => 5,
+
+		// Autocomplete documents 1 to 20.
+		'max_limit'      => 20,
+		'max_zoom'       => 20,
+
+		// HERE filters by ISO 3166-1 alpha-3 codes (`in=countryCode:GBR`), while HivePress stores
+		// alpha-2, so the list is converted before it reaches the browser.
+		'country_format' => 'alpha3',
+
+		// Tile label languages the Raster Tile API documents. Any other code is left off, so the
+		// map falls back to each place's local language instead of risking a refused tile.
+		'tile_languages' => [ 'ar', 'as', 'az', 'be', 'bg', 'bn', 'bs', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'eu', 'fi', 'fo', 'fr', 'ga', 'gl', 'gn', 'gu', 'he', 'hi', 'hr', 'hu', 'hy', 'id', 'is', 'it', 'ja', 'ka', 'kk', 'km', 'kn', 'ko', 'ky', 'lt', 'lv', 'mk', 'ml', 'mr', 'ms', 'mt', 'my', 'nl', 'no', 'or', 'pa', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sq', 'sr', 'sv', 'ta', 'te', 'th', 'tr', 'uk', 'uz', 'vi', 'zh' ],
+
+		// Read by the browser to add the data suppliers HERE's terms require beside its own name
+		// ("© 2026 HERE, Airbus"), which depend on the style, the zoom and the area in view.
+		'copyright_url'  => 'https://maps.hereapi.com/v3/copyright',
+
+		// Standard-tier styles only; the `logistics` family is billed at a higher rate. Satellite
+		// styles are JPEG because HERE is withdrawing PNG for imagery. `here_style` is the name the
+		// copyright response is keyed by.
+		'styles'         => [
+			'explore-day'           => [
+				'label'      => esc_html__( 'Standard', 'geolocation-plus-for-hivepress' ),
+				'url'        => 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=explore.day&size=256&apiKey={key}',
+				'here_style' => 'explore.day',
+			],
+
+			'lite-day'              => [
+				'label'      => esc_html__( 'Light', 'geolocation-plus-for-hivepress' ),
+				'url'        => 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=lite.day&size=256&apiKey={key}',
+				'here_style' => 'lite.day',
+			],
+
+			'explore-night'         => [
+				'label'      => esc_html__( 'Dark', 'geolocation-plus-for-hivepress' ),
+				'url'        => 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=explore.night&size=256&apiKey={key}',
+				'here_style' => 'explore.night',
+			],
+
+			'topo-day'              => [
+				'label'      => esc_html__( 'Terrain', 'geolocation-plus-for-hivepress' ),
+				'url'        => 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=topo.day&size=256&apiKey={key}',
+				'here_style' => 'topo.day',
+			],
+
+			'explore-satellite-day' => [
+				'label'      => esc_html__( 'Satellite with labels', 'geolocation-plus-for-hivepress' ),
+				'url'        => 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/jpeg?style=explore.satellite.day&size=256&apiKey={key}',
+				'here_style' => 'explore.satellite.day',
+			],
+
+			'satellite-day'         => [
+				'label'      => esc_html__( 'Satellite', 'geolocation-plus-for-hivepress' ),
+				'url'        => 'https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/jpeg?style=satellite.day&size=256&apiKey={key}',
+				'here_style' => 'satellite.day',
+			],
+		],
+
+		// The fixed part of the notice. The year is HERE's documented format ("© 20XX HERE").
+		'attribution'    => '&copy; ' . gmdate( 'Y' ) . ' HERE',
+
+		// Deliberately empty, as for LocationIQ: the browser filters on "kinds" instead. HERE's
+		// `postalCode` type excludes full UK postcodes, which it returns as `postalCodePoint`
+		// under `address`, so a server-side Postcode restriction would hide exactly the
+		// postcodes a UK site wants.
+		'types'          => [],
+
+		// Keyed by what hereKind() in common.js reads off a result: the administrative or
+		// locality subtype where HERE gives one, else the resultType. `poi` is HERE's `place`
+		// (a named business, only ever returned by a reverse lookup), renamed so it can never be
+		// mistaken for our own "place" type.
+		'kinds'          => [
+			'country'  => [ 'country' ],
+			'region'   => [ 'state' ],
+			'district' => [ 'county' ],
+			'place'    => [ 'city' ],
+			'locality' => [ 'district', 'subdistrict' ],
+			'postcode' => [ 'postalCode', 'postalCodePoint' ],
+			'address'  => [ 'houseNumber', 'street', 'intersection', 'addressBlock', 'poi' ],
+		],
+	],
 ];

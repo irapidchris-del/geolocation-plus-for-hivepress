@@ -528,6 +528,82 @@
 	}
 
 	/**
+	 * Reads what kind of place a HERE result is.
+	 *
+	 * HERE gives a broad resultType and, for areas, a subtype that says which level. The subtype
+	 * is the useful half: "locality" alone covers cities, districts and postcodes. A named business
+	 * (`place`, from reverse lookups only) becomes "poi" so it cannot collide with our own "place".
+	 */
+	function hereKind(item) {
+		if (!item) {
+			return '';
+		}
+
+		if ('administrativeArea' === item.resultType && item.administrativeAreaType) {
+			return item.administrativeAreaType;
+		}
+
+		if ('locality' === item.resultType && item.localityType) {
+			return item.localityType;
+		}
+
+		if ('place' === item.resultType) {
+			return 'poi';
+		}
+
+		return item.resultType || '';
+	}
+
+	/**
+	 * The name a HERE result goes by at its own level, for its region code.
+	 *
+	 * Read from the same address fields Hpgp_Geolocation::parse_here_reverse() files regions
+	 * under, so a place picked here and a place filed there produce the same code. The label is
+	 * no use for this: a UK postcode's label starts with the town, not the postcode.
+	 */
+	function hereRegionName(item, kind) {
+		var address = (item && item.address) || {},
+			fields = {
+				country: 'countryName',
+				state: 'state',
+				county: 'county',
+				city: 'city',
+				district: 'district',
+				subdistrict: 'subdistrict',
+				postalCode: 'postalCode',
+				postalCodePoint: 'postalCode'
+			};
+
+		return fields[kind] ? (address[fields[kind]] || '') : '';
+	}
+
+	function hereResult(item) {
+		var address = item.address || {},
+			position = item.position || {},
+			kind = hereKind(item);
+
+		return {
+			// The address label reads most specific first, which is what the Address Format
+			// setting counts from; the title of an autocomplete item can run the other way.
+			label: address.label || item.title || '',
+			latitude: typeof position.lat === 'number' ? position.lat : null,
+			longitude: typeof position.lng === 'number' ? position.lng : null,
+			kind: kind,
+			id: item.id || '',
+			poi: 'poi' === kind,
+			street: address.street || '',
+			regionName: hereRegionName(item, kind)
+		};
+	}
+
+	/**
+	 * A promise that fails at once, for a request that cannot succeed.
+	 */
+	function rejected() {
+		return $.Deferred().reject().promise();
+	}
+
+	/**
 	 * Suggestion sources, one per geocoder.
 	 *
 	 * Each returns a jQuery promise resolving to a list of
@@ -733,6 +809,86 @@
 						longitude: longitude,
 						kind: feature.place_type ? feature.place_type[0] : ''
 					};
+				});
+			}
+		},
+
+		/**
+		 * HERE Autocomplete, then Lookup for the coordinates of the one picked.
+		 *
+		 * Without a key every request is a certain 401, so none is sent and the field says
+		 * search is unavailable straight away.
+		 */
+		here: {
+			search: function (term, options) {
+				if (!data.key) {
+					return rejected();
+				}
+
+				var params = addTypeParam({
+					q: term,
+					limit: data.limit || 5,
+					lang: data.language,
+					apiKey: data.key
+				}, options);
+
+				// Three-letter codes, converted on the server.
+				if (data.countries && data.countries.length) {
+					params['in'] = 'countryCode:' + data.countries.join(',');
+				}
+
+				return $.getJSON(data.searchUrl + '?' + buildQuery(params)).then(function (response) {
+					return $.map((response && response.items) || [], hereResult);
+				});
+			},
+
+			resolve: function (result) {
+				if (!data.key || !data.lookupUrl || !result.id) {
+					return $.Deferred().resolve(null).promise();
+				}
+
+				return $.getJSON(data.lookupUrl + '?' + buildQuery({
+					id: result.id,
+					lang: data.language,
+					apiKey: data.key
+				})).then(function (item) {
+					var found = item && item.position ? hereResult(item) : null;
+
+					if (!found) {
+						return null;
+					}
+
+					// Keep what the visitor saw in the list; Lookup may word it differently.
+					return $.extend({}, result, {
+						latitude: found.latitude,
+						longitude: found.longitude
+					});
+				}, function () {
+					return null;
+				});
+			},
+
+			reverse: function (latitude, longitude) {
+				if (!data.key) {
+					return rejected();
+				}
+
+				return $.getJSON(data.reverseUrl + '?' + buildQuery({
+					at: latitude + ',' + longitude,
+					lang: data.language,
+					apiKey: data.key
+				})).then(function (response) {
+					var item = response && response.items && response.items[0];
+
+					if (!item) {
+						return null;
+					}
+
+					// The visitor's own position, as for mapbox and maptiler.
+					return $.extend(hereResult(item), {
+						latitude: latitude,
+						longitude: longitude
+					});
 				});
 			}
 		},
@@ -1131,7 +1287,9 @@
 				var type = kindType(result.kind);
 
 				if (type && $.inArray(type, data.regionTypes || []) !== -1) {
-					regionField.val(regionCode(type, String(result.label).split(',')[0].trim()));
+					// A geocoder that names the level outright (HERE) is used as is; the others lead
+					// their label with the place's own name.
+					regionField.val(regionCode(type, result.regionName || String(result.label).split(',')[0].trim()));
 				} else {
 					regionField.val('');
 				}
@@ -1153,8 +1311,16 @@
 				return;
 			}
 
+			// A pick whose position cannot be fetched says so. Doing nothing left the list open
+			// and the visitor clicking a row that never responded.
 			if (geocoder.resolve) {
-				geocoder.resolve(result).then(apply);
+				geocoder.resolve(result).then(function (resolved) {
+					if (resolved) {
+						apply(resolved);
+					} else {
+						renderMenu([], data.strings.failed);
+					}
+				});
 			}
 		}
 
@@ -1394,6 +1560,139 @@
 		}
 	}
 
+	// One copyright request per page, shared by every map on it.
+	var copyrightRequests = {};
+
+	/**
+	 * Fetches a provider's copyright table, reusing a copy under a day old.
+	 *
+	 * HERE asks for the table to be refreshed every 24 hours, so a day is also the most a copy may
+	 * be kept. Browser storage can be missing or blocked; the request then simply runs.
+	 */
+	function loadCopyright(url) {
+		var storeKey = 'hpgpCopyright:' + url.split('?')[0];
+
+		if (copyrightRequests[url]) {
+			return copyrightRequests[url];
+		}
+
+		try {
+			var stored = JSON.parse(window.localStorage.getItem(storeKey) || 'null');
+
+			if (stored && stored.time && Date.now() - stored.time < 86400000 && stored.data) {
+				copyrightRequests[url] = $.Deferred().resolve(stored.data).promise();
+
+				return copyrightRequests[url];
+			}
+		} catch (e) {
+			// Storage unavailable: fetch instead.
+		}
+
+		copyrightRequests[url] = $.getJSON(url).then(function (response) {
+			try {
+				window.localStorage.setItem(storeKey, JSON.stringify({ time: Date.now(), data: response }));
+			} catch (e) {
+				// Storage full or blocked: the copy is simply not kept.
+			}
+
+			return response;
+		});
+
+		return copyrightRequests[url];
+	}
+
+	/**
+	 * True when any of a copyright block's boxes overlaps the map view.
+	 *
+	 * A block with no boxes applies everywhere, and so does a box spanning the whole globe, which
+	 * HERE writes with west and east swapped (west 180, east -180). Any other box with west past
+	 * east crosses the antimeridian and is tested as its two halves.
+	 */
+	function copyrightOverlaps(boxes, bounds) {
+		var south = bounds.getSouth(),
+			north = bounds.getNorth(),
+			west = bounds.getWest(),
+			east = bounds.getEast();
+
+		if (!boxes || !boxes.length || east - west >= 360) {
+			return true;
+		}
+
+		west = Math.max(-180, west);
+		east = Math.min(180, east);
+
+		function within(from, to) {
+			return from <= east && to >= west;
+		}
+
+		return $.grep(boxes, function (box) {
+			if (box.south > north || box.north < south) {
+				return false;
+			}
+
+			if (box.west <= box.east) {
+				return within(box.west, box.east);
+			}
+
+			if (box.west - box.east >= 359) {
+				return true;
+			}
+
+			return within(box.west, 180) || within(-180, box.east);
+		}).length > 0;
+	}
+
+	/**
+	 * Adds the data suppliers a HERE map must credit, for the style, area and zoom in view.
+	 *
+	 * HERE's terms require "© 20XX HERE" followed by the supplier labels its copyright table lists
+	 * for what is on screen. The fixed part is drawn from the start; the labels follow once the
+	 * table arrives, and the fixed part stays if it never does.
+	 */
+	function hereCopyright(map, layer, tiles) {
+		var base = tiles.attribution || '';
+
+		loadCopyright(tiles.copyright.url).then(function (response) {
+			var styles = (((response && response.resources) || {}).base || {}).styles || {},
+				keys = styles[tiles.copyright.style] || [],
+				blocks = (response && response.copyrights) || {};
+
+			function update() {
+				var zoom = map.getZoom(),
+					bounds = map.getBounds(),
+					labels = [];
+
+				$.each(keys, function (index, key) {
+					$.each(blocks[key] || [], function (position, block) {
+						if (!block || !block.label || zoom < block.minLevel || zoom > block.maxLevel || !copyrightOverlaps(block.boundingBoxes, bounds)) {
+							return;
+						}
+
+						if ($.inArray(block.label, labels) === -1) {
+							labels.push(block.label);
+						}
+					});
+				});
+
+				// Escaped: the attribution control renders HTML, and the labels are another
+				// service's data.
+				var text = base + (labels.length ? ', ' + $('<span></span>').text(labels.join(', ')).html() : ''),
+					current = layer.getAttribution();
+
+				if (text === current) {
+					return;
+				}
+
+				map.attributionControl.removeAttribution(current);
+				layer.options.attribution = text;
+				map.attributionControl.addAttribution(text);
+			}
+
+			map.on('moveend', update);
+			update();
+		});
+	}
+
 	/**
 	 * Draws one map with Leaflet.
 	 */
@@ -1412,7 +1711,11 @@
 			markerIcon = container.data('marker'),
 			height = container.data('height') || container.width();
 
+		// No tile URL means the provider has no key yet (see get_provider_style()). The empty
+		// container would still hold the theme's map height as a blank box, so it goes.
 		if (!tiles.url) {
+			container.hide();
+
 			return;
 		}
 
@@ -1438,12 +1741,16 @@
 			maxZoom: maxZoom
 		}).setView([0, 0], 1);
 
-		L.tileLayer(tiles.url, {
+		var tileLayer = L.tileLayer(tiles.url, {
 			attribution: tiles.attribution || '',
 			subdomains: tiles.subdomains || 'abc',
 			maxZoom: maxZoom,
 			maxNativeZoom: tiles.maxZoom || 19
 		}).addTo(map);
+
+		if (tiles.copyright && tiles.copyright.url) {
+			hereCopyright(map, tileLayer, tiles);
+		}
 
 		// An exact address is hidden by drawing a circle instead of a pin, which is the same
 		// choice the extension makes on Google Maps.

@@ -33,7 +33,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
  *
  * Wrapped in a function because a network install has to run it per site: options live in each
  * site's own table, so a single pass would leave every other site holding this plugin's settings
- * and, worse, three live third-party API keys in a database the owner believes they have cleaned.
+ * and, worse, live third-party API keys in a database the owner believes they have cleaned.
  */
 function hpgp_uninstall_site() {
 	global $wpdb;
@@ -54,7 +54,7 @@ function hpgp_uninstall_site() {
 	// nothing wrong. Putting the extension's own default back is not destroying an owner's
 	// setting, it is removing a value only this plugin could ever honour. Done here and NOT on
 	// deactivation, which is usually temporary and must not rewrite another plugin's settings.
-	if ( in_array( get_option( 'hp_geolocation_provider' ), [ 'osm', 'maptiler', 'geoapify', 'locationiq' ], true ) ) {
+	if ( in_array( get_option( 'hp_geolocation_provider' ), [ 'osm', 'maptiler', 'geoapify', 'locationiq', 'here' ], true ) ) {
 		update_option( 'hp_geolocation_provider', '' );
 	}
 
@@ -92,7 +92,7 @@ function hpgp_uninstall_site() {
 
 	// Every setting this plugin adds. HivePress stores a settings field as "hp_" plus the field
 	// name, and every one of ours is named "geolocation_plus_*", so one prefix covers the lot -
-	// including the three API keys on the Integrations tab. The delete-data flag itself matches
+	// including every API key on the Integrations tab. The delete-data flag itself matches
 	// that prefix too, so it is excluded here and removed last: if anything fails part way
 	// through, the flag is still set and a second delete finishes the job, rather than the site
 	// silently reverting to "retain" with half the data already gone.

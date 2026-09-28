@@ -138,6 +138,11 @@ final class Hpgp_Geolocation extends Component {
 			// Warn about a missing key.
 			add_action( 'admin_notices', [ $this, 'render_key_notice' ] );
 
+			// Test a newly saved key where the provider allows it, so a mistyped or refused key
+			// is reported on the screen it was typed into rather than as a grey map.
+			add_action( 'admin_init', [ $this, 'register_key_checks' ] );
+			add_action( 'admin_notices', [ $this, 'render_key_check_notice' ] );
+
 			// Say so when region generation last failed.
 			add_action( 'admin_notices', [ $this, 'render_region_notice' ] );
 
@@ -313,13 +318,38 @@ final class Hpgp_Geolocation extends Component {
 		}
 
 		$args = $styles[ $style ];
+		$key  = $this->get_provider_key( $provider );
+		$url  = str_replace( '{key}', rawurlencode( $key ), $args['url'] );
 
-		return [
-			'url'         => str_replace( '{key}', rawurlencode( $this->get_provider_key( $provider ) ), $args['url'] ),
+		// An empty URL is how the browser is told to draw no map (initMap() in common.js).
+		if ( '' === $key && hp\get_array_value( $provider, 'key_required' ) ) {
+			$url = '';
+		}
+
+		// Label language, only where the provider documents the code.
+		$language = hivepress()->translator->get_language();
+
+		if ( $url && in_array( $language, (array) hp\get_array_value( $provider, 'tile_languages', [] ), true ) ) {
+			$url .= '&lang=' . rawurlencode( $language );
+		}
+
+		$tiles = [
+			'url'         => $url,
 			'subdomains'  => (string) hp\get_array_value( $args, 'subdomains', 'abc' ),
 			'attribution' => (string) hp\get_array_value( $args, 'attribution', hp\get_array_value( $provider, 'attribution', '' ) ),
 			'maxZoom'     => absint( hp\get_array_value( $args, 'max_zoom', hp\get_array_value( $provider, 'max_zoom', 19 ) ) ),
 		];
+
+		// Where the provider publishes its data suppliers per style, area and zoom, the browser
+		// fetches that list and adds the matching names to the attribution.
+		if ( $url && hp\get_array_value( $provider, 'copyright_url' ) && hp\get_array_value( $args, 'here_style' ) ) {
+			$tiles['copyright'] = [
+				'url'   => add_query_arg( 'apiKey', rawurlencode( $key ), $provider['copyright_url'] ),
+				'style' => (string) $args['here_style'],
+			];
+		}
+
+		return $tiles;
 	}
 
 	/**
@@ -617,6 +647,15 @@ final class Hpgp_Geolocation extends Component {
 		$data['kinds']      = $this->map_kinds( $types, (array) hp\get_array_value( $provider, 'kinds', [] ) );
 		$data['types']      = $mapped;
 
+		// Where a picked suggestion's coordinates are fetched, for a geocoder whose suggestions
+		// carry none.
+		$data['lookupUrl'] = (string) hp\get_array_value( $provider, 'lookup_url', '' );
+
+		// The Countries setting in the form this provider's filter takes.
+		if ( 'alpha3' === hp\get_array_value( $provider, 'country_format' ) ) {
+			$data['countries'] = $this->get_alpha3_countries( $data['countries'] );
+		}
+
 		// The full table, so the browser can also work out WHICH kind of place a result is -
 		// needed to build the region code and to label a suggestion.
 		$data['kindMap'] = (array) hp\get_array_value( $provider, 'kinds', [] );
@@ -704,6 +743,30 @@ final class Hpgp_Geolocation extends Component {
 		}
 
 		return $map;
+	}
+
+	/**
+	 * Converts two-letter country codes to three-letter ones.
+	 *
+	 * A code with no known equivalent is dropped rather than passed through, because a filter
+	 * value the provider cannot parse fails the whole request.
+	 *
+	 * @param array $countries ISO 3166-1 alpha-2 codes.
+	 * @return array
+	 */
+	public function get_alpha3_countries( $countries ) {
+		$codes     = (array) hivepress()->get_config( 'hpgp_country_codes' );
+		$converted = [];
+
+		foreach ( (array) $countries as $country ) {
+			$country = strtoupper( (string) $country );
+
+			if ( isset( $codes[ $country ] ) ) {
+				$converted[] = $codes[ $country ];
+			}
+		}
+
+		return array_values( array_unique( $converted ) );
 	}
 
 	/**
@@ -1145,7 +1208,7 @@ final class Hpgp_Geolocation extends Component {
 			$field['options'][ $name ] = $provider['label'];
 		}
 
-		$field['description'] = hp\get_array_value( $field, 'description', '' ) . ' ' . esc_html__( 'OpenStreetMap needs no account, but it is a free community service, so move to MapTiler, Geoapify or LocationIQ once you have real traffic. Those three need a free API key, entered in the Integrations section. Providers name places slightly differently, so switching on a site with region pages can create duplicates. Suggestions come back in English, German or French only.', 'geolocation-plus-for-hivepress' );
+		$field['description'] = hp\get_array_value( $field, 'description', '' ) . ' ' . esc_html__( 'OpenStreetMap needs no account, but it is a free community service, so move to MapTiler, Geoapify, LocationIQ or HERE once you have real traffic. Those four need an API key, entered in the Integrations section. Providers name places slightly differently, so switching on a site with region pages can create duplicates. OpenStreetMap suggestions come back in English, German or French only.', 'geolocation-plus-for-hivepress' );
 
 		unset( $field );
 
@@ -1962,6 +2025,19 @@ final class Hpgp_Geolocation extends Component {
 
 				break;
 
+			case 'here':
+				// No `types`: the default answer is the nearest address, and its `address` object
+				// already carries every level from the country down.
+				$url .= '?' . http_build_query(
+					[
+						'at'     => $latitude . ',' . $longitude,
+						'lang'   => $language,
+						'apiKey' => $key,
+					]
+				);
+
+				break;
+
 			default:
 				// Photon.
 				$url .= '?' . http_build_query(
@@ -2015,7 +2091,7 @@ final class Hpgp_Geolocation extends Component {
 					/* translators: 1: map provider name, 2: error message. */
 					__( 'this site could not reach %1$s (%2$s)', 'geolocation-plus-for-hivepress' ),
 					$provider['label'],
-					$response->get_error_message()
+					$this->redact_key( $response->get_error_message(), $key )
 				)
 			);
 
@@ -2028,7 +2104,7 @@ final class Hpgp_Geolocation extends Component {
 
 			// Quote the provider rather than guessing at the cause. Blaming the API key for every non-200
 			// was misleading when MapTiler returned 400 for a malformed request with a good key.
-			$detail = trim( wp_strip_all_tags( (string) wp_remote_retrieve_body( $response ) ) );
+			$detail = $this->redact_key( trim( wp_strip_all_tags( (string) wp_remote_retrieve_body( $response ) ) ), $key );
 
 			if ( strlen( $detail ) > 200 ) {
 				$detail = substr( $detail, 0, 200 ) . '…';
@@ -2260,6 +2336,67 @@ final class Hpgp_Geolocation extends Component {
 	}
 
 	/**
+	 * Turns a HERE reverse response into region names.
+	 *
+	 * HERE names each level in a fixed field of the first item's `address`. These are the same
+	 * fields hereRegionName() in common.js reads off a picked suggestion, so a region filed here
+	 * and a region chosen in the search box produce the same code.
+	 *
+	 * @param array $response Decoded response.
+	 * @return array
+	 */
+	protected function parse_here_reverse( $response ) {
+		$item    = (array) hp\get_first_array_value( (array) hp\get_array_value( $response, 'items', [] ) );
+		$address = (array) hp\get_array_value( $item, 'address', [] );
+		$names   = [];
+
+		$fields = [
+			'country'  => 'countryName',
+			'region'   => 'state',
+			'district' => 'county',
+			'place'    => 'city',
+			'locality' => 'district',
+			'postcode' => 'postalCode',
+		];
+
+		foreach ( $fields as $type => $field ) {
+			$value = hp\get_array_value( $address, $field );
+
+			if ( is_string( $value ) && '' !== trim( $value ) ) {
+				$names[ $type ] = trim( $value );
+			}
+		}
+
+		// Where the county carries the city's own name (London in London), keeping both would
+		// nest a term inside another of the same name. The city is the one the search box mints.
+		if ( isset( $names['district'], $names['place'] ) && 0 === strcasecmp( $names['district'], $names['place'] ) ) {
+			unset( $names['district'] );
+		}
+
+		return $names;
+	}
+
+	/**
+	 * Removes an API key from text that is about to be stored or shown.
+	 *
+	 * Provider error bodies and transport errors can echo the request URL, and several
+	 * providers carry the key in the query string.
+	 *
+	 * @param string $text Text to clean.
+	 * @param string $key API key.
+	 * @return string
+	 */
+	protected function redact_key( $text, $key ) {
+		$text = (string) $text;
+
+		if ( '' === (string) $key ) {
+			return $text;
+		}
+
+		return str_replace( [ $key, rawurlencode( $key ) ], '[key]', $text );
+	}
+
+	/**
 	 * Turns a reverse geocoding response into region names keyed by our region types.
 	 *
 	 * @param array $provider Provider arguments.
@@ -2271,6 +2408,10 @@ final class Hpgp_Geolocation extends Component {
 
 		if ( 'maptiler' === hp\get_array_value( $provider, 'geocoder' ) ) {
 			return $this->parse_maptiler_reverse( $provider, $response );
+		}
+
+		if ( 'here' === hp\get_array_value( $provider, 'geocoder' ) ) {
+			return $this->parse_here_reverse( $response );
 		}
 
 		// Photon answers with a GeoJSON feature whose properties carry the hierarchy; Geoapify
@@ -2351,6 +2492,145 @@ final class Hpgp_Geolocation extends Component {
 		}
 
 		return $names;
+	}
+
+	/**
+	 * Hooks the key test onto every provider that declares one.
+	 *
+	 * On `admin_init` rather than in the constructor, because reading the provider config
+	 * translates its labels and that must not happen before translations load. Saving the
+	 * settings screen goes through options.php, which runs admin_init before it writes.
+	 */
+	public function register_key_checks() {
+		foreach ( $this->get_providers() as $name => $provider ) {
+			if ( ! hp\get_array_value( $provider, 'key_check' ) || ! hp\get_array_value( $provider, 'key_option' ) ) {
+				continue;
+			}
+
+			$option = hp\prefix( $provider['key_option'] );
+
+			// add_option_ fires on the very first save, update_option_ on every later change.
+			add_action(
+				'add_option_' . $option,
+				function ( $option_name, $value ) use ( $name ) {
+					$this->check_key( $name, $value );
+				},
+				10,
+				2
+			);
+
+			add_action(
+				'update_option_' . $option,
+				function ( $old_value, $value ) use ( $name ) {
+					$this->check_key( $name, $value );
+				},
+				10,
+				2
+			);
+		}
+	}
+
+	/**
+	 * Tests an API key against the provider once and remembers the answer.
+	 *
+	 * Only a definite refusal (401 or 403) is recorded as a problem. A timeout or an unreachable
+	 * host says nothing about the key, and the maps are loaded by each visitor's browser anyway.
+	 *
+	 * @param string $name Provider name.
+	 * @param mixed  $key API key as saved.
+	 */
+	public function check_key( $name, $key ) {
+		$providers = $this->get_providers();
+		$cache     = 'hpgp_key_check_' . $name;
+		$key       = trim( (string) $key );
+
+		delete_transient( $cache );
+
+		if ( '' === $key || ! isset( $providers[ $name ] ) ) {
+			return;
+		}
+
+		$response = wp_remote_get(
+			str_replace( '{key}', rawurlencode( $key ), (string) hp\get_array_value( $providers[ $name ], 'key_check', '' ) ),
+			[
+				'timeout'    => 10,
+				'user-agent' => 'geolocation-plus-for-hivepress/' . HPGP_VERSION,
+
+				// Matches what visitors' browsers send, so a key limited to this site's domain
+				// passes here too.
+				'headers'    => [
+					'Referer' => home_url( '/' ),
+				],
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return;
+		}
+
+		$status = (int) wp_remote_retrieve_response_code( $response );
+
+		if ( ! in_array( $status, [ 401, 403 ], true ) ) {
+			return;
+		}
+
+		$body   = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		$detail = is_array( $body ) ? (string) hp\get_array_value( $body, 'error_description', hp\get_array_value( $body, 'title', '' ) ) : '';
+		$detail = $this->redact_key( trim( wp_strip_all_tags( $detail ) ), $key );
+
+		if ( strlen( $detail ) > 160 ) {
+			$detail = substr( $detail, 0, 160 ) . '…';
+		}
+
+		set_transient(
+			$cache,
+			[
+				'status' => $status,
+				'detail' => $detail,
+				'hash'   => md5( $key ),
+			],
+			MONTH_IN_SECONDS
+		);
+	}
+
+	/**
+	 * Says so when a saved API key was refused by its provider.
+	 */
+	public function render_key_check_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+		if ( ! $screen || false === strpos( (string) $screen->id, 'hp_settings' ) ) {
+			return;
+		}
+
+		foreach ( $this->get_providers() as $name => $provider ) {
+			if ( ! hp\get_array_value( $provider, 'key_check' ) ) {
+				continue;
+			}
+
+			$result = get_transient( 'hpgp_key_check_' . $name );
+
+			// Stale once the key has changed by any route other than this screen.
+			if ( ! is_array( $result ) || md5( $this->get_provider_key( $provider ) ) !== hp\get_array_value( $result, 'hash' ) ) {
+				continue;
+			}
+
+			echo '<div class="notice notice-error"><p>';
+
+			printf(
+				/* translators: 1: map provider name, 2: HTTP status code, 3: the provider's explanation. */
+				esc_html__( '%1$s refused the saved API key (HTTP %2$d: %3$s), so its maps and location suggestions will not work. Check the key was copied in full and, if you limited it to trusted domains, that this site is one of them. Saving the key again checks it again.', 'geolocation-plus-for-hivepress' ),
+				esc_html( $provider['label'] ),
+				(int) hp\get_array_value( $result, 'status' ),
+				esc_html( hp\get_array_value( $result, 'detail' ) ? (string) $result['detail'] : __( 'no reason given', 'geolocation-plus-for-hivepress' ) )
+			);
+
+			echo '</p></div>';
+		}
 	}
 
 	/**
